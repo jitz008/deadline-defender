@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as GoogleTasksRouteImport } from './routes/google-tasks'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiGeminiInsightsRouteImport } from './routes/api/gemini-insights'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiAskRouteImport } from './routes/api/ask'
 
@@ -48,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGeminiInsightsRoute = ApiGeminiInsightsRouteImport.update({
+  id: '/api/gemini-insights',
+  path: '/api/gemini-insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/template': typeof TemplateRoute
   '/api/ask': typeof ApiAskRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/gemini-insights': typeof ApiGeminiInsightsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/template': typeof TemplateRoute
   '/api/ask': typeof ApiAskRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/gemini-insights': typeof ApiGeminiInsightsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/template': typeof TemplateRoute
   '/api/ask': typeof ApiAskRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/gemini-insights': typeof ApiGeminiInsightsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/template'
     | '/api/ask'
     | '/api/chat'
+    | '/api/gemini-insights'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/template'
     | '/api/ask'
     | '/api/chat'
+    | '/api/gemini-insights'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/template'
     | '/api/ask'
     | '/api/chat'
+    | '/api/gemini-insights'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   TemplateRoute: typeof TemplateRoute
   ApiAskRoute: typeof ApiAskRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiGeminiInsightsRoute: typeof ApiGeminiInsightsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gemini-insights': {
+      id: '/api/gemini-insights'
+      path: '/api/gemini-insights'
+      fullPath: '/api/gemini-insights'
+      preLoaderRoute: typeof ApiGeminiInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   TemplateRoute: TemplateRoute,
   ApiAskRoute: ApiAskRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiGeminiInsightsRoute: ApiGeminiInsightsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
