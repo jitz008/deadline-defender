@@ -691,8 +691,8 @@ function AiBubble({ msg, onFollowUp, onOption }: { msg: ChatMsg; onFollowUp: (q:
 }
 
 // ============ Column ============
-function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
-  priority: Priority; title: string; tasks: Task[];
+function Column({ priority, title, tasks, integrations = [], onInsight, onToggle, onStar }: {
+  priority: Priority; title: string; tasks: Task[]; integrations?: IntegrationItem[];
   onInsight: (t: Task) => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void;
 }) {
   const [adding, setAdding] = useState(false);
@@ -704,10 +704,11 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
       <div className="mb-4 flex items-center gap-2 px-1">
         <span className={`size-2 rounded-full dot-${priority}`} />
         <span className="text-[13px] font-medium text-white/85">{title}</span>
-        <span className="ml-auto text-[11px] text-white/35">{tasks.length}</span>
+        <span className="ml-auto text-[11px] text-white/35">{tasks.length + integrations.length}</span>
       </div>
       <div className="space-y-2">
         {tasks.map((t) => <TaskRow key={t.id} task={t} onInsight={() => onInsight(t)} onToggle={onToggle} onStar={onStar} />)}
+        {integrations.map((i) => <IntegrationRow key={i.id} item={i} />)}
       </div>
       {adding ? (
         <form onSubmit={(e) => { e.preventDefault(); if (val.trim()) tasksStore.add({ title: val.trim(), priority }); setVal(""); setAdding(false); }} className="mt-2">
@@ -718,6 +719,7 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
       )}
     </div>
   );
+
 }
 
 function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight: () => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
