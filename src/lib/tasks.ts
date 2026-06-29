@@ -17,55 +17,8 @@ export interface Task {
 
 const STORAGE_KEY = "saver:tasks:v2";
 
-const seedTasks: Task[] = [
-  {
-    id: "t-1",
-    title: "Client pitch — Series A investors",
-    priority: "high",
-    done: false,
-    group: "Sequoia Capital team",
-    due: "Today 3:00 PM",
-    createdAt: Date.now() - 1000 * 60 * 60 * 4,
-  },
-  {
-    id: "t-2",
-    title: "Submit hackathon project by deadline",
-    priority: "high",
-    done: false,
-    due: "Tonight 11:59 PM",
-    createdAt: Date.now() - 1000 * 60 * 60 * 8,
-  },
-  {
-    id: "t-3",
-    title: "Pay AWS bill before suspension",
-    priority: "medium",
-    done: false,
-    due: "Tomorrow",
-    createdAt: Date.now() - 1000 * 60 * 30,
-  },
-  {
-    id: "t-4",
-    title: "Review pull requests before standup",
-    priority: "medium",
-    done: false,
-    createdAt: Date.now() - 1000 * 60 * 60,
-  },
-  {
-    id: "t-5",
-    title: "Lunch with product design team",
-    priority: "low",
-    done: false,
-    group: "Design team",
-    createdAt: Date.now() - 1000 * 60 * 10,
-  },
-  {
-    id: "t-6",
-    title: "Pick up MacBook from Apple Store",
-    priority: "low",
-    done: false,
-    createdAt: Date.now() - 1000 * 60 * 5,
-  },
-];
+const seedTasks: Task[] = [];
+
 
 let tasks: Task[] = [];
 let hydrated = false;
