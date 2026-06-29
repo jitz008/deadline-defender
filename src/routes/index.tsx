@@ -532,7 +532,7 @@ function HomePage({
 
       {/* AI command bar — sticky so it stays pinned while content scrolls */}
       <section className="sticky bottom-4 z-20 mt-6">
-        <div className="rounded-2xl border border-white/10 bg-[#0a0e17]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
+        <div className="rounded-2xl border border-white/15 bg-[#121725]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
               <Sparkles className="size-4 text-white" />
@@ -554,7 +554,7 @@ function HomePage({
           </div>
           <div className="mt-3 flex flex-wrap gap-2 px-1">
             {quickActions.map((q) => (
-              <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/8 bg-white/[0.02] px-3 py-1 text-xs text-white/65 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.06] hover:text-white">
+              <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/65 transition hover:-translate-y-px hover:border-white/25 hover:bg-white/[0.08] hover:text-white">
                 <span className="text-white/35">/</span> {q}
               </button>
             ))}
