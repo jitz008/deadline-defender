@@ -495,17 +495,49 @@ function HomePage({
   return (
     <>
       {/* Hero: Tasks 2.0 */}
-      <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] p-14 text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,_rgba(59,130,246,0.26),_rgba(15,23,42,0.3)_55%,_transparent_100%)]" />
-        <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,_black_45%,_transparent_68%)]">
-          <InteractiveDotGrid baseOpacity={0.28} influence={160} />
+      <section className="relative overflow-hidden py-16 text-center md:py-20">
+        {/* Deep navy-to-black radial gradient with lighter center */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 75% 90% at 50% 45%, #1a2744 0%, #0f172a 35%, #080c16 65%, transparent 100%)",
+          }}
+        />
+        {/* Soft vignette fade on all sides */}
+        <div
+          className="absolute inset-0"
+          style={{
+            maskImage: "radial-gradient(ellipse 85% 75% at 50% 50%, black 30%, transparent 75%)",
+            WebkitMaskImage: "radial-gradient(ellipse 85% 75% at 50% 50%, black 30%, transparent 75%)",
+          }}
+        >
+          <InteractiveDotGrid spacing={22} radius={0.9} baseOpacity={0.06} influence={120} color="160, 185, 230" />
         </div>
+        {/* Subtle soft glow above center */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-[35%] h-40 w-3/4 -translate-x-1/2 -translate-y-1/2 blur-3xl md:w-1/2"
+          style={{
+            background: "radial-gradient(ellipse at center, rgba(91,141,239,0.18) 0%, transparent 70%)",
+          }}
+        />
         <div className="relative z-10">
-          <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
-            <span className="text-white/95">Tasks </span>
-            <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent">2.0</span>
+          <h1 className="text-4xl font-bold tracking-tight md:text-5xl" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+            <span style={{ color: "#F2F4F8" }}>Tasks </span>
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage: "linear-gradient(90deg, #5B8DEF, #8B9CFF)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              2.0
+            </span>
           </h1>
-          <p className="mt-3 text-sm text-white/45">Don't forget yours!</p>
+          <p className="mt-2 text-sm font-normal" style={{ color: "#7B8499" }}>
+            Don't forget yours!
+          </p>
         </div>
       </section>
 
