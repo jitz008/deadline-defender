@@ -1,20 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Home, Star, ListChecks, CalendarClock, Activity, History,
+  Home, Star, CalendarClock, Activity, History,
   Sparkles, Mic, X, Lightbulb, Plus, Check,
   LogOut, Clock, Trash2, User as UserIcon, ChevronUp, Info,
   PanelLeftClose, PanelLeftOpen, Inbox, Trophy, FolderKanban, Zap,
-  CalendarDays, ListTodo,
+  CalendarDays, ListTodo, MoreHorizontal,
 } from "lucide-react";
-import { tasksStore, useTasks, type Priority, type Task } from "@/lib/tasks";
-import { allIntegrationItems, type IntegrationItem } from "@/lib/integrations";
+import { tasksStore, useTasks, type Priority, type Task, type TaskCategory } from "@/lib/tasks";
+import { listsStore, useLists, type UserList } from "@/lib/lists";
+import { allIntegrationItems, mockCalendarEvents, mockGoogleTasks, type IntegrationItem } from "@/lib/integrations";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { InteractiveDotGrid } from "@/components/InteractiveDotGrid";
 import { Calendar } from "@/components/ui/calendar";
 
 export const Route = createFileRoute("/")({ component: PulseTasks });
-
 
 // ============ Types & Parsing ============
 type Block = { time: string; task: string; priority: Priority };
@@ -123,13 +123,20 @@ function loadSessions(): ChatSession[] {
 function saveSessions(s: ChatSession[]) { try { localStorage.setItem(CHAT_KEY, JSON.stringify(s)); } catch { /* ignore */ } }
 
 // ============ Sidebar ============
-type Page = "home" | "starred" | "lists" | "plan" | "habits" | "previous";
-const navItems: { key: Page; icon: typeof Home; label: string; badge?: string }[] = [
+type Page =
+  | { kind: "plan" }
+  | { kind: "home" }
+  | { kind: "starred" }
+  | { kind: "habits" }
+  | { kind: "previous" }
+  | { kind: "list"; listId: string };
+
+const topNav: { key: Page["kind"]; icon: typeof Home; label: string; badge?: string }[] = [
+  { key: "plan", icon: CalendarClock, label: "Today's plan", badge: "AI" },
   { key: "home", icon: Home, label: "Home" },
   { key: "starred", icon: Star, label: "Starred" },
-  { key: "lists", icon: ListChecks, label: "All lists" },
-  { key: "plan", icon: CalendarClock, label: "Today's plan", badge: "AI" },
   { key: "habits", icon: Activity, label: "Habit tracker" },
+  { key: "previous", icon: History, label: "Previous tasks" },
 ];
 
 const integrationLinks: { to: string; icon: typeof CalendarDays; label: string; badgeClass: string }[] = [
@@ -137,29 +144,32 @@ const integrationLinks: { to: string; icon: typeof CalendarDays; label: string; 
   { to: "/google-tasks", icon: ListTodo, label: "Google Tasks", badgeClass: "text-sky-300" },
 ];
 
-
-const myLists = [
+const builtInLists: { name: string; icon: typeof Inbox }[] = [
   { name: "My Tasks", icon: Inbox },
   { name: "Hackathon Tasks", icon: Trophy },
   { name: "Personal Inbox", icon: FolderKanban },
 ];
 
 function Sidebar({
-  page, setPage, profile, onAvatar, pinned, setPinned, hovered, setHovered,
+  page, setPage, profile, onAvatar, pinned, setPinned, hovered, setHovered, lists, onCreateList, onDeleteList,
 }: {
   page: Page; setPage: (p: Page) => void; profile: Profile; onAvatar: () => void;
   pinned: boolean; setPinned: (b: boolean) => void;
   hovered: boolean; setHovered: (b: boolean) => void;
+  lists: UserList[]; onCreateList: (name: string) => void; onDeleteList: (id: string) => void;
 }) {
   const expanded = pinned || hovered;
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+
   return (
     <aside
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="fixed left-0 top-0 z-30 flex h-screen flex-col justify-between border-r border-white/5 bg-[#0d1119]/95 py-4 backdrop-blur-xl transition-[width] duration-200 ease-out"
+      className="sidebar-glass fixed left-0 top-0 z-30 flex h-screen flex-col justify-between py-4 transition-[width] duration-200 ease-out"
       style={{ width: expanded ? 250 : 64 }}
     >
-      <div className="flex flex-col gap-1 px-3">
+      <div className="flex flex-col gap-1 overflow-y-auto px-3">
         {/* Brand row + pin */}
         <div className="mb-2 flex items-center justify-between px-1">
           <div className="flex items-center gap-2 overflow-hidden">
@@ -175,12 +185,12 @@ function Sidebar({
           )}
         </div>
 
-        {navItems.map((it) => {
-          const active = page === it.key;
+        {topNav.map((it) => {
+          const active = page.kind === it.key;
           return (
             <button
               key={it.key}
-              onClick={() => setPage(it.key)}
+              onClick={() => setPage({ kind: it.key } as Page)}
               title={it.label}
               className={`group/btn relative flex h-10 items-center gap-3 rounded-xl px-2.5 text-sm transition-all duration-150 ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"}`}
             >
@@ -197,17 +207,6 @@ function Sidebar({
         })}
 
         <div className="my-2 h-px bg-white/5" />
-
-        <button
-          onClick={() => setPage("previous")}
-          title="Previous tasks"
-          className={`flex h-10 items-center gap-3 rounded-xl px-2.5 text-sm transition ${page === "previous" ? "bg-[#5B8DEF]/15 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"}`}
-        >
-          <History className="size-5 shrink-0" strokeWidth={1.75} />
-          {expanded && <span className="truncate">Previous tasks</span>}
-        </button>
-
-        <div className="my-2 h-px bg-white/5" />
         {expanded && <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">Integrations</div>}
         {integrationLinks.map((it) => (
           <Link
@@ -221,21 +220,40 @@ function Sidebar({
           </Link>
         ))}
 
-
         {expanded && (
           <div className="mt-4">
             <div className="px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">My lists</div>
             <div className="flex flex-col gap-0.5">
-              {myLists.map((l) => (
+              {builtInLists.map((l) => (
                 <button key={l.name} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/65 transition hover:bg-white/5 hover:text-white">
                   <l.icon className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
                   <span className="truncate">{l.name}</span>
                 </button>
               ))}
-              <button className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/40 transition hover:bg-white/5 hover:text-white">
-                <Plus className="size-4 shrink-0" />
-                <span>Create new list</span>
-              </button>
+              {lists.map((l) => {
+                const active = page.kind === "list" && page.listId === l.id;
+                return (
+                  <div key={l.id} className={`group/li flex h-9 items-center gap-2 rounded-lg pl-2.5 pr-1 text-sm transition ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+                    <button onClick={() => setPage({ kind: "list", listId: l.id })} className="flex flex-1 items-center gap-3 truncate text-left">
+                      <FolderKanban className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
+                      <span className="truncate">{l.name}</span>
+                    </button>
+                    <button onClick={() => onDeleteList(l.id)} className="hidden size-6 place-items-center rounded text-white/40 hover:bg-white/10 hover:text-red-300 group-hover/li:grid" title="Delete list">
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
+                );
+              })}
+              {creating ? (
+                <form onSubmit={(e) => { e.preventDefault(); const v = newName.trim(); if (v) { onCreateList(v); setNewName(""); } setCreating(false); }}>
+                  <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onBlur={() => { const v = newName.trim(); if (v) onCreateList(v); setNewName(""); setCreating(false); }} placeholder="List name..." className="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-2.5 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
+                </form>
+              ) : (
+                <button onClick={() => setCreating(true)} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/40 transition hover:bg-white/5 hover:text-white">
+                  <Plus className="size-4 shrink-0" />
+                  <span>Create new list</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -268,8 +286,9 @@ function Sidebar({
 // ============ Main ============
 function PulseTasks() {
   const tasks = useTasks();
+  const lists = useLists();
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
-  const [page, setPage] = useState<Page>("home");
+  const [page, setPage] = useState<Page>({ kind: "home" });
   const [aiActive, setAiActive] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -283,8 +302,12 @@ function PulseTasks() {
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [listening, setListening] = useState(false);
 
+  // Per-list chat
+  const [listChats, setListChats] = useState<Record<string, ChatMsg[]>>({});
+
   useEffect(() => {
     tasksStore.hydrate();
+    listsStore.hydrate();
     setProfile(loadProfile());
     setSessions(loadSessions());
   }, []);
@@ -315,13 +338,18 @@ function PulseTasks() {
     }
   }
 
-  async function ask(message: string) {
+  async function ask(message: string, opts?: { listId?: string }) {
     setError(null);
     setAiActive(true);
     const userMsg: ChatMsg = { role: "user", text: message, ts: Date.now() };
-    const next = [...messages, userMsg];
-    setMessages(next);
+    const listId = opts?.listId;
+    const prev = listId ? (listChats[listId] || []) : messages;
+    const next = [...prev, userMsg];
+    if (listId) setListChats((m) => ({ ...m, [listId]: next }));
+    else setMessages(next);
+
     try {
+      const taskContextSource = listId ? tasks.filter((t) => t.listId === listId) : tasks;
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -329,29 +357,22 @@ function PulseTasks() {
           message,
           profile: profile.aiContext,
           currentTime: new Date().toISOString(),
-          taskContext: tasks.filter((t) => !t.done).map((t) => ({
+          taskContext: taskContextSource.filter((t) => !t.done).map((t) => ({
             id: t.id, title: t.title, priority: t.priority, due: t.due, group: t.group,
           })),
           history: next.slice(-6).map((m) => ({ role: m.role, text: m.text })),
         }),
-
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "AI error");
       const parsed = parseAiText(data.text);
       for (const s of parsed.suggestions) {
-        tasksStore.add({ title: s.title, priority: s.priority, due: s.time });
+        tasksStore.add({ title: s.title, priority: s.priority, due: s.time, listId });
       }
       const aiMsg: ChatMsg = { role: "ai", text: data.text, parsed, ts: Date.now() };
       const finalMsgs = [...next, aiMsg];
-      setMessages(finalMsgs);
-      const sid = sessions[0]?.id && Date.now() - (sessions[0]?.startedAt || 0) < 3600_000
-        ? sessions[0].id
-        : "s-" + Date.now();
-      const updatedSessions = sessions[0]?.id === sid
-        ? sessions.map((s) => s.id === sid ? { ...s, messages: finalMsgs } : s)
-        : [{ id: sid, messages: finalMsgs, startedAt: Date.now() }, ...sessions];
-      setSessions(updatedSessions); saveSessions(updatedSessions);
+      if (listId) setListChats((m) => ({ ...m, [listId]: finalMsgs }));
+      else setMessages(finalMsgs);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -359,41 +380,44 @@ function PulseTasks() {
     }
   }
 
-  function submit(text?: string) {
+  function submit(text?: string, opts?: { listId?: string }) {
     const v = (text ?? input).trim(); if (!v) return;
-    setInput(""); ask(v);
+    setInput(""); ask(v, opts);
   }
 
   // Voice with silence detection + auto-send
-  const recogRef = useRef<any>(null);
+  const recogRef = useRef<unknown>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function stopListening() {
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
-    try { recogRef.current?.stop(); } catch { /* ignore */ }
+    try { (recogRef.current as { stop?: () => void } | null)?.stop?.(); } catch { /* ignore */ }
     setListening(false);
   }
 
   function startMic() {
-    const W = window as unknown as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any };
+    const W = window as unknown as { SpeechRecognition?: new () => unknown; webkitSpeechRecognition?: new () => unknown };
     const SR = W.SpeechRecognition || W.webkitSpeechRecognition;
     if (!SR) { setError("Voice input not supported in this browser"); return; }
-    const r = new SR();
+    const r = new SR() as unknown as {
+      lang: string; interimResults: boolean; continuous: boolean;
+      onresult: (e: unknown) => void; onerror: () => void; onend: () => void;
+      stop: () => void; start: () => void;
+    };
     recogRef.current = r;
     r.lang = "en-US"; r.interimResults = true; r.continuous = true;
     let buffer = "";
     const resetSilence = () => {
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = setTimeout(() => {
-        try { r.stop(); } catch { /* ignore */ }
-      }, 2000);
+      silenceTimerRef.current = setTimeout(() => { try { r.stop(); } catch { /* ignore */ } }, 2000);
     };
-    r.onresult = (e: any) => {
+    r.onresult = (e: unknown) => {
+      const ev = e as { resultIndex: number; results: { isFinal: boolean; 0: { transcript: string } }[] };
       let finalText = "";
       let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const tr = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += tr; else interim += tr;
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const tr = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) finalText += tr; else interim += tr;
       }
       if (finalText) buffer += finalText;
       setInput((buffer + interim).trim());
@@ -404,10 +428,7 @@ function PulseTasks() {
       setListening(false);
       if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
       const finalText = buffer.trim();
-      if (finalText) {
-        setInput("");
-        ask(finalText);
-      }
+      if (finalText) { setInput(""); ask(finalText); }
     };
     setListening(true);
     setError(null);
@@ -415,10 +436,19 @@ function PulseTasks() {
     resetSilence();
   }
 
-  function clearChat() { setMessages([]); }
+  // CLEAR CHAT → archive into history, leave active chat empty
+  function clearChat() {
+    if (messages.length > 0) {
+      const session: ChatSession = { id: "s-" + Date.now(), messages, startedAt: messages[0]?.ts || Date.now() };
+      const next = [session, ...sessions];
+      setSessions(next); saveSessions(next);
+    }
+    setMessages([]);
+  }
 
   const quickActions = ["Break it down", "Rescue me", "Plan my day", "Habit check"];
   const expanded = sidebarPinned || sidebarHovered;
+  const activeList = page.kind === "list" ? lists.find((l) => l.id === page.listId) : null;
 
   return (
     <div className="min-h-screen transition-[padding] duration-200 ease-out" style={{ paddingLeft: expanded ? 250 : 64 }}>
@@ -428,14 +458,15 @@ function PulseTasks() {
         onAvatar={() => setShowProfile(true)}
         pinned={sidebarPinned} setPinned={setSidebarPinned}
         hovered={sidebarHovered} setHovered={setSidebarHovered}
+        lists={lists}
+        onCreateList={(name) => { const l = listsStore.add(name); setPage({ kind: "list", listId: l.id }); }}
+        onDeleteList={(id) => { listsStore.remove(id); if (page.kind === "list" && page.listId === id) setPage({ kind: "home" }); }}
       />
 
-      {/* Floating +2 */}
       {floats.map((f) => (
         <div key={f.id} className="pointer-events-none fixed z-50 float-up text-sm font-bold text-emerald-300" style={{ left: f.x, top: f.y }}>+2</div>
       ))}
 
-      {/* Top mini bar */}
       <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-black/40 px-6 backdrop-blur-xl">
         <LiveClock />
         <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
@@ -448,8 +479,6 @@ function PulseTasks() {
         <Link to="/login" className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></Link>
       </header>
 
-
-      {/* Pulse score chip */}
       <div className={`fixed bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0d0f14]/80 px-3 py-1.5 text-xs backdrop-blur-xl ${scorePop ? "score-pop" : ""}`}>
         <Info className="size-3.5 text-white/40" />
         <span className="font-semibold text-white">{profile.pulseScore}</span>
@@ -457,11 +486,11 @@ function PulseTasks() {
       </div>
 
       <main className="relative z-10 mx-auto max-w-5xl px-8 py-10">
-        {page === "home" && (
+        {page.kind === "home" && (
           <HomePage
             tasks={tasks} counts={counts} profile={profile}
             input={input} setInput={setInput}
-            aiActive={aiActive} ask={ask} submit={submit}
+            aiActive={aiActive} ask={(m) => ask(m)} submit={(t) => submit(t)}
             startMic={startMic} stopMic={stopListening} listening={listening}
             quickActions={quickActions} messages={messages} clearChat={clearChat}
             error={error}
@@ -469,15 +498,47 @@ function PulseTasks() {
             onStar={(id) => { const t = tasks.find((x) => x.id === id); tasksStore.update(id, { starred: !t?.starred }); }}
           />
         )}
-        {page === "starred" && <StarredPage tasks={tasks} onToggle={toggleTask} onStar={(id) => { const t = tasks.find((x) => x.id === id); tasksStore.update(id, { starred: !t?.starred }); }} />}
-        {page === "plan" && <PlanPage tasks={tasks} onToggle={toggleTask} ask={ask} />}
-        {page === "habits" && <HabitsPage tasks={tasks} profile={profile} />}
-        {page === "previous" && <PreviousPage tasks={tasks} />}
-        {page === "lists" && <div className="glass-panel p-10 text-center text-white/60">All Lists view coming soon.</div>}
+        {page.kind === "starred" && <StarredPage tasks={tasks} onToggle={toggleTask} onStar={(id) => { const t = tasks.find((x) => x.id === id); tasksStore.update(id, { starred: !t?.starred }); }} />}
+        {page.kind === "plan" && <PlanPage tasks={tasks} onToggle={toggleTask} ask={(m) => ask(m)} />}
+        {page.kind === "habits" && <HabitsPage tasks={tasks} profile={profile} />}
+        {page.kind === "previous" && <PreviousPage tasks={tasks} />}
+        {page.kind === "list" && activeList && (
+          <CustomListPage
+            list={activeList}
+            tasks={tasks.filter((t) => t.listId === activeList.id)}
+            messages={listChats[activeList.id] || []}
+            input={input} setInput={setInput}
+            aiActive={aiActive}
+            ask={(m) => ask(m, { listId: activeList.id })}
+            submit={(t) => submit(t, { listId: activeList.id })}
+            startMic={startMic} stopMic={stopListening} listening={listening}
+            error={error}
+            onToggle={toggleTask}
+            onStar={(id) => { const t = tasks.find((x) => x.id === id); tasksStore.update(id, { starred: !t?.starred }); }}
+          />
+        )}
       </main>
 
       {showHistory && <HistoryPanel sessions={sessions} onClose={() => setShowHistory(false)} onPick={(s) => { setMessages(s.messages); setShowHistory(false); }} onClear={() => { setSessions([]); saveSessions([]); }} />}
       {showProfile && <ProfileModal profile={profile} onSave={(p) => { setProfile(p); saveProfile(p); setShowProfile(false); }} onClose={() => setShowProfile(false)} />}
+    </div>
+  );
+}
+
+// ============ Chat scroll container (fixes: single scrollbar + no page jump) ============
+function ChatScroll({ messages, ask }: { messages: ChatMsg[]; ask: (q: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Scroll INSIDE the container only — never bubble to the page
+    const el = ref.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+  return (
+    <div ref={ref} className="max-h-[55vh] space-y-5 overflow-y-auto overscroll-contain pr-1">
+      {messages.map((m, i) => m.role === "user"
+        ? <UserBubble key={i} text={m.text} />
+        : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
+      )}
     </div>
   );
 }
@@ -495,12 +556,8 @@ function HomePage({
   error: string | null;
   onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void;
 }) {
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages.length]);
-
   return (
     <>
-      {/* Hero: Tasks 2.0 — feathered edges */}
       <section className="feather-mask relative overflow-hidden rounded-3xl p-10 text-center">
         <div className="mesh-bg" />
         <InteractiveDotGrid baseOpacity={0.18} influence={160} />
@@ -513,69 +570,33 @@ function HomePage({
         </div>
       </section>
 
-      {/* Greeting — below hero */}
       <div key={profile.name} className="greet-in mt-8">
         <div className="text-3xl font-semibold tracking-tight text-white md:text-4xl"><Greeting name={profile.name} /></div>
         <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
       </div>
 
-      {/* Inline conversation — scrollable container so input bar stays sticky */}
       {messages.length > 0 && (
         <section className="slide-down mt-8 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
             <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
           </div>
-          <div className="max-h-[55vh] space-y-5 overflow-y-auto pr-1">
-            {messages.map((m, i) => m.role === "user"
-              ? <UserBubble key={i} text={m.text} />
-              : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
-            )}
-            <div ref={chatEndRef} />
-          </div>
+          <ChatScroll messages={messages} ask={ask} />
         </section>
       )}
 
-      {/* AI command bar — sticky so it stays pinned while content scrolls */}
-      <section className="sticky bottom-4 z-20 mt-6">
-        <div className="rounded-2xl border border-white/15 bg-[#121725]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
-              <Sparkles className="size-4 text-white" />
-            </div>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-              placeholder="Ask anything or add a task..."
-              className="h-9 w-full bg-transparent text-[15px] text-white placeholder:text-white/40 focus:outline-none"
-            />
-            <button
-              onClick={listening ? stopMic : startMic}
-              className={`relative grid size-9 shrink-0 place-items-center rounded-full transition ${listening ? "mic-ring bg-[#5B8DEF] text-white" : "border border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white"}`}
-              aria-label="Voice"
-            >
-              <Mic className="size-4" />
-            </button>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 px-1">
-            {quickActions.map((q) => (
-              <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/65 transition hover:-translate-y-px hover:border-white/25 hover:bg-white/[0.08] hover:text-white">
-                <span className="text-white/35">/</span> {q}
-              </button>
-            ))}
-          </div>
-        </div>
-        {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
-      </section>
+      <CommandBar
+        input={input} setInput={setInput} aiActive={aiActive}
+        submit={submit} startMic={startMic} stopMic={stopMic} listening={listening}
+        quickActions={quickActions} onQuick={ask} error={error}
+      />
 
-      {/* Today's tasks — includes Google Calendar + Google Tasks items */}
       <section className="mt-10">
         <h2 className="mb-5 text-lg font-semibold text-white">Today's tasks</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
-              tasks={tasks.filter((t) => t.priority === p && !t.done)}
+              tasks={tasks.filter((t) => t.priority === p && !t.done && !t.listId)}
               integrations={allIntegrationItems().filter((i) => i.priority === p)}
               onInsight={(t) => ask(`Give me insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)}
               onToggle={onToggle} onStar={onStar}
@@ -584,14 +605,110 @@ function HomePage({
         </div>
       </section>
 
-
-      {/* Drag handle + Previous tasks */}
       <section className="mt-12">
         <div className="mx-auto mb-6 h-1 w-12 rounded-full bg-white/10" />
         <h2 className="mb-5 text-lg font-semibold text-white">Previous tasks</h2>
         <PreviousList tasks={tasks} />
       </section>
     </>
+  );
+}
+
+// ============ Custom List Page ============
+function CustomListPage({
+  list, tasks, messages, input, setInput, aiActive, ask, submit, startMic, stopMic, listening,
+  error, onToggle, onStar,
+}: {
+  list: UserList; tasks: Task[]; messages: ChatMsg[];
+  input: string; setInput: (s: string) => void; aiActive: boolean;
+  ask: (m: string) => void; submit: (t?: string) => void;
+  startMic: () => void; stopMic: () => void; listening: boolean;
+  error: string | null;
+  onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void;
+}) {
+  const open = tasks.filter((t) => !t.done);
+  const order: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+  const sorted = [...open].sort((a, b) => order[a.priority] - order[b.priority]);
+
+  return (
+    <>
+      <h1 className="text-5xl font-bold tracking-tight text-white md:text-6xl">{list.name}</h1>
+
+      <div className="mt-6">
+        <CommandBar
+          input={input} setInput={setInput} aiActive={aiActive}
+          submit={submit} startMic={startMic} stopMic={stopMic} listening={listening}
+          quickActions={["Break it down", "Plan this list", "What's urgent here?"]} onQuick={ask} error={error}
+        />
+      </div>
+
+      {messages.length > 0 && (
+        <section className="slide-down mt-6 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
+          <div className="mb-3 flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
+          <ChatScroll messages={messages} ask={ask} />
+        </section>
+      )}
+
+      {sorted.length > 0 && (
+        <section className="mt-8 space-y-2">
+          {sorted.map((t) => (
+            <div key={t.id} className={`fade-in flex items-center gap-3 rounded-xl border bg-[#121725]/70 px-3 py-2.5 ${t.priority === "high" ? "border-red-400/30" : t.priority === "low" ? "border-emerald-400/30" : "border-amber-400/30"}`}>
+              <span className={`size-2 rounded-full dot-${t.priority}`} />
+              <button onClick={(e) => onToggle(t.id, e)} className={`grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition ${t.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/25 hover:border-white"}`} aria-label="Toggle">
+                {t.done && <Check className="size-3 text-emerald-300" />}
+              </button>
+              <span className="flex-1 text-[14px] text-white/95">{t.title}</span>
+              {t.due && <span className="time-pill"><Clock className="size-3" />{t.due}</span>}
+              <button onClick={() => onStar(t.id)} aria-label="Star"><Star className={`size-3.5 ${t.starred ? "fill-amber-300 text-amber-300" : "text-white/20 hover:text-white/60"}`} /></button>
+            </div>
+          ))}
+        </section>
+      )}
+    </>
+  );
+}
+
+// ============ Command bar (sticky AI input) ============
+function CommandBar({
+  input, setInput, aiActive, submit, startMic, stopMic, listening, quickActions, onQuick, error,
+}: {
+  input: string; setInput: (s: string) => void; aiActive: boolean;
+  submit: (t?: string) => void;
+  startMic: () => void; stopMic: () => void; listening: boolean;
+  quickActions: string[]; onQuick: (q: string) => void; error: string | null;
+}) {
+  return (
+    <section className="sticky bottom-4 z-20 mt-6">
+      <div className="rounded-2xl border border-white/15 bg-[#121725]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
+            <Sparkles className="size-4 text-white" />
+          </div>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            placeholder="Ask anything or add a task..."
+            className="h-9 w-full bg-transparent text-[15px] text-white placeholder:text-white/40 focus:outline-none"
+          />
+          <button
+            onClick={listening ? stopMic : startMic}
+            className={`relative grid size-9 shrink-0 place-items-center rounded-full transition ${listening ? "mic-ring bg-[#5B8DEF] text-white" : "border border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white"}`}
+            aria-label="Voice"
+          >
+            <Mic className="size-4" />
+          </button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 px-1">
+          {quickActions.map((q) => (
+            <button key={q} onClick={() => onQuick(q)} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/65 transition hover:-translate-y-px hover:border-white/25 hover:bg-white/[0.08] hover:text-white">
+              <span className="text-white/35">/</span> {q}
+            </button>
+          ))}
+        </div>
+      </div>
+      {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
+    </section>
   );
 }
 
@@ -725,7 +842,6 @@ function Column({ priority, title, tasks, integrations = [], onInsight, onToggle
       )}
     </div>
   );
-
 }
 
 function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight: () => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
@@ -748,7 +864,6 @@ function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight:
   );
 }
 
-// Previous list (home page slice)
 function PreviousList({ tasks }: { tasks: Task[] }) {
   const completed = tasks.filter((t) => t.done).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0)).slice(0, 8);
   if (completed.length === 0) return <div className="rounded-2xl border border-white/5 bg-[#121725]/60 px-3 py-10 text-center text-sm text-white/40">Nothing completed yet. Knock out a task to see it here.</div>;
@@ -766,7 +881,6 @@ function PreviousList({ tasks }: { tasks: Task[] }) {
   );
 }
 
-// ============ Starred ============
 function StarredPage({ tasks, onToggle, onStar }: { tasks: Task[]; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
   const starred = tasks.filter((t) => t.starred);
   return (
@@ -785,7 +899,6 @@ function StarredPage({ tasks, onToggle, onStar }: { tasks: Task[]; onToggle: (id
   );
 }
 
-// ============ Today's Plan (timeline) ============
 function PlanPage({ tasks, onToggle, ask }: { tasks: Task[]; onToggle: (id: string, e?: React.MouseEvent) => void; ask: (q: string) => void }) {
   const open = tasks.filter((t) => !t.done);
   const sorted = [...open].sort((a, b) => {
@@ -836,70 +949,407 @@ function parseHour(due?: string): number | null {
   return h * 60 + min;
 }
 
-// ============ Habits ============
+// ============ HABITS ============
+function classifyCategory(t: Task): TaskCategory {
+  if (t.category) return t.category;
+  const blob = `${t.title} ${t.group || ""} ${t.due || ""}`.toLowerCase();
+  const personal = /(dinner|pick(?:up| up)?|errand|gym|laundry|family|grocer|clean|wife|husband|kid|home|doctor|appoint|date|movie|friend)/;
+  const professional = /(meeting|standup|pitch|deadline|review|sprint|client|investor|launch|spec|design|code|deploy|report|email|hire|interview|okr)/;
+  if (personal.test(blob)) return "personal";
+  if (professional.test(blob)) return "professional";
+  return "professional";
+}
+
+function computeStats(tasks: Task[]) {
+  // Pulse rating: lifetime completed / lifetime assigned
+  const assigned = tasks.length;
+  const completed = tasks.filter((t) => t.done).length;
+  const pulse = assigned > 0 ? Math.round((completed / assigned) * 100) : 0;
+
+  // Streak: consecutive days where ALL tasks created that day were completed.
+  const byDay = new Map<string, { total: number; done: number }>();
+  for (const t of tasks) {
+    const day = new Date(t.createdAt).toDateString();
+    const row = byDay.get(day) || { total: 0, done: 0 };
+    row.total += 1;
+    if (t.done) row.done += 1;
+    byDay.set(day, row);
+  }
+  let currentStreak = 0;
+  let bestStreak = 0;
+  let cur = 0;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  // walk back 90 days
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const row = byDay.get(d.toDateString());
+    if (row && row.total > 0 && row.done === row.total) {
+      cur += 1;
+      if (i === 0 || currentStreak > 0) currentStreak = cur;
+      bestStreak = Math.max(bestStreak, cur);
+    } else {
+      if (i === 0) currentStreak = 0;
+      cur = 0;
+    }
+  }
+
+  // Daily/weekly average
+  const days = byDay.size || 1;
+  const dailyAvg = completed / days;
+  const weeklyAvg = dailyAvg * 7;
+
+  // Categories
+  const cats = { personal: { total: 0, done: 0 }, professional: { total: 0, done: 0 } };
+  for (const t of tasks) {
+    const c = classifyCategory(t);
+    cats[c].total += 1;
+    if (t.done) cats[c].done += 1;
+  }
+
+  // Priority completion rate
+  const byPriority = (p: Priority) => {
+    const all = tasks.filter((t) => t.priority === p);
+    const dn = all.filter((t) => t.done).length;
+    return { total: all.length, done: dn, rate: all.length ? Math.round((dn / all.length) * 100) : 0 };
+  };
+  const priorityRates = { high: byPriority("high"), medium: byPriority("medium"), low: byPriority("low") };
+
+  // Most productive day and hour
+  const dowCount: Record<number, number> = {};
+  const hourCount: Record<number, number> = {};
+  for (const t of tasks) {
+    if (!t.done || !t.completedAt) continue;
+    const d = new Date(t.completedAt);
+    dowCount[d.getDay()] = (dowCount[d.getDay()] || 0) + 1;
+    hourCount[d.getHours()] = (hourCount[d.getHours()] || 0) + 1;
+  }
+  const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let bestDay = "—"; let bestDayN = 0;
+  for (const [k, v] of Object.entries(dowCount)) { if (v > bestDayN) { bestDayN = v; bestDay = DOW[Number(k)]; } }
+  let bestHour = -1; let bestHourN = 0;
+  for (const [k, v] of Object.entries(hourCount)) { if (v > bestHourN) { bestHourN = v; bestHour = Number(k); } }
+  const bestHourLabel = bestHour < 0 ? "—" : `${bestHour % 12 || 12}${bestHour < 12 ? "am" : "pm"}`;
+
+  // On-time vs overdue (heuristic: completed within 24h of due hint, else overdue)
+  let onTime = 0, overdue = 0;
+  for (const t of tasks) {
+    if (!t.done || !t.completedAt) continue;
+    const dueHour = parseHour(t.due);
+    if (dueHour === null) { onTime += 1; continue; }
+    const c = new Date(t.completedAt);
+    const cMin = c.getHours() * 60 + c.getMinutes();
+    if (cMin <= dueHour + 30) onTime += 1; else overdue += 1;
+  }
+  const ontimeRate = (onTime + overdue) > 0 ? Math.round((onTime / (onTime + overdue)) * 100) : 100;
+
+  // 7-week heatmap (49 cells)
+  const heat: { date: Date; v: number }[] = [];
+  for (let i = 48; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const row = byDay.get(d.toDateString());
+    heat.push({ date: d, v: row?.done || 0 });
+  }
+  const heatMax = Math.max(1, ...heat.map((h) => h.v));
+
+  // Last 14d line chart
+  const line: { date: Date; v: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const row = byDay.get(d.toDateString());
+    line.push({ date: d, v: row?.done || 0 });
+  }
+
+  return {
+    pulse, assigned, completed, currentStreak, bestStreak,
+    dailyAvg, weeklyAvg, cats, priorityRates,
+    bestDay, bestHourLabel, ontimeRate, onTime, overdue,
+    heat, heatMax, line,
+  };
+}
+
 function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
-  const [range, setRange] = useState<"7" | "15" | "30">("7");
-  const done = tasks.filter((t) => t.done);
-  const onTime = done.length ? Math.round((done.length / Math.max(tasks.length, 1)) * 100) : 0;
-  const days = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i));
-    return { label: d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1), v: 2 + ((i * 3 + done.length) % 6) };
-  });
-  const maxV = Math.max(...days.map((d) => d.v), 1);
+  const stats = useMemo(() => computeStats(tasks), [tasks]);
   return (
-    <section className="space-y-4">
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Habit tracker</h2>
-          <p className="mt-1 text-sm text-white/50">Quiet telemetry on consistency, focus, and velocity.</p>
-        </div>
-        <div className="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-1 text-xs">
-          {(["7", "15", "30"] as const).map((r) => (
-            <button key={r} onClick={() => setRange(r)} className={`rounded-md px-2.5 py-1 transition ${range === r ? "bg-white/10 text-white" : "text-white/50 hover:text-white"}`}>{r} DAYS</button>
-          ))}
-        </div>
+    <section className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-white">Habit tracker</h2>
+        <p className="mt-1 text-sm text-white/50">Lifetime telemetry on consistency, focus, and velocity.</p>
       </div>
+
+      {/* Top row: Pulse ring + streak + totals */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Pulse rating</div>
-          <div className="mt-3 flex items-center gap-4">
-            <Ring value={profile.pulseScore} />
+          <div className="mt-4 flex items-center gap-5">
+            <BigRing value={stats.pulse} />
             <div>
-              <div className="text-3xl font-bold text-white">{profile.pulseScore}</div>
-              <div className="text-xs text-emerald-300">3 day streak</div>
+              <div className="text-4xl font-bold text-white">{stats.pulse}</div>
+              <div className="mt-1 text-xs text-white/55">{stats.completed} of {stats.assigned} lifetime</div>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-5 lg:col-span-2">
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="Completed" v={done.length} />
-            <Stat label="On-time %" v={`${onTime}%`} />
-            <Stat label="Avg/day" v={(done.length / 7).toFixed(1)} />
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Streak</div>
+          <div className="mt-4 flex items-end gap-6">
+            <div>
+              <div className="text-4xl font-bold text-emerald-300">{stats.currentStreak}</div>
+              <div className="text-xs text-white/55">day streak</div>
+            </div>
+            <div>
+              <div className="text-2xl font-semibold text-white">{stats.bestStreak}</div>
+              <div className="text-xs text-white/55">best</div>
+            </div>
           </div>
-          <div className="mt-6 flex h-32 items-end gap-2">
-            {days.map((d, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <div className="w-full rounded-t-md bg-gradient-to-t from-[#5B8DEF] to-[#8B5CF6]" style={{ height: `${(d.v / maxV) * 100}%` }} />
-                <span className="text-[10px] text-white/40">{d.label}</span>
-              </div>
-            ))}
+        </div>
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Totals</div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Stat label="Assigned" v={stats.assigned} />
+            <Stat label="Completed" v={stats.completed} />
+            <Stat label="Avg / day" v={stats.dailyAvg.toFixed(1)} />
+            <Stat label="Avg / week" v={stats.weeklyAvg.toFixed(1)} />
           </div>
         </div>
       </div>
+
+      {/* Trend line */}
+      <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">14-day completion trend</div>
+        </div>
+        <LineChart points={stats.line} />
+      </div>
+
+      {/* Donut + priority bars */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Professional vs Personal</div>
+          <div className="mt-4 flex items-center gap-6">
+            <Donut personal={stats.cats.personal.total} professional={stats.cats.professional.total} />
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2"><span className="size-3 rounded-sm bg-[#5B8DEF]" /> Professional · <span className="font-semibold text-white">{stats.cats.professional.total}</span></div>
+              <div className="text-xs text-white/45">{stats.cats.professional.done} completed</div>
+              <div className="mt-2 flex items-center gap-2"><span className="size-3 rounded-sm bg-[#8B5CF6]" /> Personal · <span className="font-semibold text-white">{stats.cats.personal.total}</span></div>
+              <div className="text-xs text-white/45">{stats.cats.personal.done} completed</div>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Completion rate by priority</div>
+          <div className="mt-4 flex h-40 items-end gap-6 px-4">
+            {(["high", "medium", "low"] as Priority[]).map((p, idx) => {
+              const r = stats.priorityRates[p];
+              return (
+                <div key={p} className="flex flex-1 flex-col items-center gap-2">
+                  <div className="text-xs font-semibold text-white">{r.rate}%</div>
+                  <div className="relative h-32 w-12 overflow-hidden rounded-md bg-white/5">
+                    <div
+                      className={`bar-anim absolute bottom-0 left-0 w-full rounded-md ${p === "high" ? "bg-red-400/80" : p === "low" ? "bg-emerald-400/80" : "bg-amber-400/80"}`}
+                      style={{ ["--h" as string]: `${r.rate}%`, animationDelay: `${idx * 0.15}s` } as React.CSSProperties}
+                    />
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-white/55">{p}</div>
+                  <div className="text-[10px] text-white/40">{r.done}/{r.total}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* On-time + most productive */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">On-time rate</div>
+          <div className="mt-3 text-4xl font-bold text-white">{stats.ontimeRate}%</div>
+          <div className="mt-1 text-xs text-white/55">{stats.onTime} on-time · {stats.overdue} overdue</div>
+        </div>
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Most productive day</div>
+          <div className="mt-3 text-4xl font-bold text-white">{stats.bestDay}</div>
+        </div>
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Most productive hour</div>
+          <div className="mt-3 text-4xl font-bold text-white">{stats.bestHourLabel}</div>
+        </div>
+      </div>
+
+      {/* Heatmap */}
+      <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-6">
+        <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-white/40">7-week heatmap</div>
+        <Heatmap data={stats.heat} max={stats.heatMax} />
+      </div>
+
+      {/* Gemini insights */}
+      <GeminiInsights stats={stats} profile={profile} />
     </section>
   );
 }
-function Ring({ value }: { value: number }) {
-  const c = 2 * Math.PI * 28;
+
+function BigRing({ value }: { value: number }) {
+  const r = 52;
+  const c = 2 * Math.PI * r;
   const off = c - (Math.min(value, 100) / 100) * c;
   return (
-    <svg width="80" height="80" viewBox="0 0 64 64" className="-rotate-90">
-      <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.08)" strokeWidth="6" fill="none" />
-      <circle cx="32" cy="32" r="28" stroke="url(#g)" strokeWidth="6" fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} />
+    <svg width="130" height="130" viewBox="0 0 130 130" className="-rotate-90">
+      <circle cx="65" cy="65" r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="10" fill="none" />
+      <circle
+        cx="65" cy="65" r={r} stroke="url(#g)" strokeWidth="10" fill="none" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={c}
+        className="ring-anim"
+        style={{ ["--c" as string]: c, ["--off" as string]: off } as React.CSSProperties}
+      />
       <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0%" stopColor="#5B8DEF" /><stop offset="100%" stopColor="#8B5CF6" /></linearGradient></defs>
     </svg>
   );
 }
+
+function Donut({ personal, professional }: { personal: number; professional: number }) {
+  const total = personal + professional || 1;
+  const r = 48; const c = 2 * Math.PI * r;
+  const proLen = (professional / total) * c;
+  const persLen = (personal / total) * c;
+  return (
+    <svg width="120" height="120" viewBox="0 0 120 120" className="-rotate-90">
+      <circle cx="60" cy="60" r={r} stroke="rgba(255,255,255,0.06)" strokeWidth="14" fill="none" />
+      <circle
+        cx="60" cy="60" r={r} stroke="#5B8DEF" strokeWidth="14" fill="none"
+        strokeDasharray={`${proLen} ${c}`} strokeDashoffset={c}
+        className="donut-anim"
+        style={{ ["--c" as string]: c, ["--off" as string]: c - proLen } as React.CSSProperties}
+      />
+      <circle
+        cx="60" cy="60" r={r} stroke="#8B5CF6" strokeWidth="14" fill="none"
+        strokeDasharray={`${persLen} ${c}`} strokeDashoffset={c + proLen}
+        className="donut-anim"
+        style={{ ["--c" as string]: c + proLen, ["--off" as string]: c - persLen } as React.CSSProperties}
+      />
+    </svg>
+  );
+}
+
+function LineChart({ points }: { points: { date: Date; v: number }[] }) {
+  const W = 600, H = 140, P = 20;
+  const max = Math.max(1, ...points.map((p) => p.v));
+  const step = (W - P * 2) / Math.max(1, points.length - 1);
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${P + i * step} ${H - P - (p.v / max) * (H - P * 2)}`).join(" ");
+  const area = `${path} L ${P + (points.length - 1) * step} ${H - P} L ${P} ${H - P} Z`;
+  const len = 1200; // overshoot fine
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-36 w-full">
+      <defs>
+        <linearGradient id="lg" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#5B8DEF" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#5B8DEF" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#lg)" />
+      <path
+        d={path} fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        strokeDasharray={len} strokeDashoffset={len}
+        className="line-anim"
+        style={{ ["--len" as string]: len } as React.CSSProperties}
+      />
+      {points.map((p, i) => (
+        <circle key={i} cx={P + i * step} cy={H - P - (p.v / max) * (H - P * 2)} r="2.5" fill="#fff" opacity="0.7" />
+      ))}
+    </svg>
+  );
+}
+
+function Heatmap({ data, max }: { data: { date: Date; v: number }[]; max: number }) {
+  // 7 rows (days of week) × 7 cols (weeks)
+  const cols = 7;
+  const grid: ({ date: Date; v: number } | null)[][] = Array.from({ length: 7 }, () => Array(cols).fill(null));
+  data.forEach((d, i) => {
+    const col = Math.floor(i / 7);
+    const row = i % 7;
+    if (col < cols) grid[row][col] = d;
+  });
+  return (
+    <div className="flex flex-col gap-1.5">
+      {grid.map((row, ri) => (
+        <div key={ri} className="flex gap-1.5">
+          {row.map((cell, ci) => {
+            const intensity = cell ? cell.v / max : 0;
+            const bg = cell ? `rgba(91,141,239,${0.12 + intensity * 0.85})` : "rgba(255,255,255,0.03)";
+            return (
+              <div
+                key={ci}
+                className="cell-in size-6 rounded-sm"
+                style={{ background: bg, animationDelay: `${(ri + ci) * 0.02}s` }}
+                title={cell ? `${cell.date.toDateString()} · ${cell.v} done` : ""}
+              />
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GeminiInsights({ stats, profile }: { stats: ReturnType<typeof computeStats>; profile: Profile }) {
+  const [insights, setInsights] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      setLoading(true); setErr(null);
+      try {
+        const res = await fetch("/api/gemini-insights", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stats: {
+              pulse: stats.pulse, assigned: stats.assigned, completed: stats.completed,
+              currentStreak: stats.currentStreak, bestStreak: stats.bestStreak,
+              dailyAvg: stats.dailyAvg, weeklyAvg: stats.weeklyAvg,
+              priorityRates: stats.priorityRates,
+              categories: stats.cats,
+              ontimeRate: stats.ontimeRate, bestDay: stats.bestDay, bestHour: stats.bestHourLabel,
+              profile: profile.aiContext,
+            },
+            currentTime: new Date().toISOString(),
+          }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) throw new Error(data?.error || "AI error");
+        setInsights(data.insights || []);
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : "Could not load insights");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    run();
+    return () => { cancelled = true; };
+  }, [stats.pulse, stats.assigned, stats.completed, stats.currentStreak, profile.aiContext]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="rounded-2xl border border-[#8B5CF6]/30 bg-gradient-to-br from-[#5B8DEF]/10 to-[#8B5CF6]/10 p-6">
+      <div className="flex items-center gap-2">
+        <div className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6]"><Sparkles className="size-3.5 text-white" /></div>
+        <span className="text-sm font-semibold text-white">Gemini insights</span>
+        <span className="ml-2 text-[10px] uppercase tracking-wider text-white/40">Personalized to your stats</span>
+      </div>
+      <div className="mt-4 space-y-2.5">
+        {loading && <div className="text-sm text-white/50">Analyzing your habits…</div>}
+        {err && <div className="text-sm text-red-300">{err}</div>}
+        {!loading && !err && insights.length === 0 && <div className="text-sm text-white/50">No insights available yet.</div>}
+        {!loading && insights.map((s, i) => (
+          <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed text-white/90">
+            <Lightbulb className="mt-0.5 size-4 shrink-0 text-amber-300" />
+            <span>{s}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Stat({ label, v }: { label: string; v: number | string }) {
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
@@ -1000,26 +1450,49 @@ function LiveClock() {
   );
 }
 
-
-// ============ History Panel ============
+// ============ History Panel (complete archive view) ============
 function HistoryPanel({ sessions, onClose, onPick, onClear }: { sessions: ChatSession[]; onClose: () => void; onPick: (s: ChatSession) => void; onClear: () => void }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
-      <div className="slide-down fixed right-0 top-0 z-50 flex h-screen w-[340px] flex-col border-l border-white/10 bg-[#0d0f14]/95 backdrop-blur-xl">
+      <div className="slide-down fixed right-0 top-0 z-50 flex h-screen w-[420px] flex-col border-l border-white/10 bg-[#0d0f14]/95 backdrop-blur-xl">
         <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-          <span className="text-sm font-semibold text-white">Chat history</span>
+          <div>
+            <div className="text-sm font-semibold text-white">Conversation history</div>
+            <div className="text-[11px] text-white/45">{sessions.length} archived</div>
+          </div>
           <button onClick={onClose} className="grid size-7 place-items-center rounded-md text-white/50 hover:bg-white/5 hover:text-white"><X className="size-4" /></button>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto p-3">
-          {sessions.length === 0 && <div className="px-2 py-8 text-center text-sm text-white/50">No conversations yet.</div>}
+          {sessions.length === 0 && <div className="px-2 py-8 text-center text-sm text-white/50">No archived conversations yet. Clear an active chat to archive it here.</div>}
           {sessions.map((s) => {
             const first = s.messages.find((m) => m.role === "user")?.text || s.messages[0]?.text || "Conversation";
+            const isOpen = expanded === s.id;
             return (
-              <button key={s.id} onClick={() => onPick(s)} className="w-full rounded-lg border border-white/5 bg-white/[0.02] p-3 text-left transition hover:-translate-y-px hover:border-white/15 hover:bg-white/[0.05]">
-                <div className="truncate text-sm text-white">{first.slice(0, 50)}</div>
-                <div className="mt-1 text-[10px] text-white/40">{new Date(s.startedAt).toLocaleString()}</div>
-              </button>
+              <div key={s.id} className="rounded-lg border border-white/5 bg-white/[0.02]">
+                <button onClick={() => setExpanded(isOpen ? null : s.id)} className="flex w-full items-start gap-2 p-3 text-left transition hover:bg-white/[0.04]">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm text-white">{first.slice(0, 80)}</div>
+                    <div className="mt-1 flex items-center gap-2 text-[10px] text-white/45">
+                      <span>{new Date(s.startedAt).toLocaleString()}</span>
+                      <span>·</span>
+                      <span>{s.messages.length} messages</span>
+                    </div>
+                  </div>
+                  <MoreHorizontal className="size-4 text-white/30" />
+                </button>
+                {isOpen && (
+                  <div className="space-y-2 border-t border-white/5 p-3">
+                    {s.messages.map((m, i) => (
+                      <div key={i} className={`text-xs ${m.role === "user" ? "text-blue-200" : "text-white/80"}`}>
+                        <span className="font-semibold uppercase tracking-wider opacity-60">{m.role}:</span> {m.text.slice(0, 200)}{m.text.length > 200 ? "…" : ""}
+                      </div>
+                    ))}
+                    <button onClick={() => onPick(s)} className="mt-2 rounded-md border border-white/10 px-2 py-1 text-xs text-white/70 hover:bg-white/5 hover:text-white">Open in main view</button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -1061,18 +1534,22 @@ function ProfileModal({ profile, onSave, onClose }: { profile: Profile; onSave: 
             className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-[#5B8DEF]/50 focus:outline-none" />
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-md border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/5">Cancel</button>
-          <button onClick={() => onSave(p)} className="rounded-md bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#5B8DEF]/20 transition hover:-translate-y-px">Save</button>
+          <button onClick={onClose} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Cancel</button>
+          <button onClick={() => onSave(p)} className="rounded-lg bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#5B8DEF]/30">Save</button>
         </div>
       </div>
     </>
   );
 }
+
 function Field({ label, v, onChange }: { label: string; v: string; onChange: (v: string) => void }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-white/40">{label}</span>
-      <input value={v} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none" />
+      <div className="mb-1 text-xs text-white/55">{label}</div>
+      <input value={v} onChange={(e) => onChange(e.target.value)} className="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-white/40 focus:border-[#5B8DEF]/50 focus:outline-none" />
     </label>
   );
 }
+
+// silence unused-import warnings for backward-compat exports
+void mockCalendarEvents; void mockGoogleTasks;

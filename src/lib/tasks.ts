@@ -2,6 +2,8 @@ import { useSyncExternalStore } from "react";
 
 export type Priority = "high" | "medium" | "low";
 
+export type TaskCategory = "personal" | "professional";
+
 export interface Task {
   id: string;
   title: string;
@@ -11,6 +13,8 @@ export interface Task {
   due?: string; // human readable, e.g. "Today 3pm" or ISO
   group?: string; // e.g. "Sequoia Capital team"
   starred?: boolean;
+  listId?: string; // user-created list scope
+  category?: TaskCategory;
   createdAt: number;
   completedAt?: number;
 }
