@@ -224,41 +224,57 @@ function Sidebar({
 
         {expanded && (
           <div className="mt-4">
-            <div className="px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">My lists</div>
-            <div className="flex flex-col gap-0.5">
-              {builtInLists.map((l) => (
-                <button key={l.name} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/65 transition hover:bg-white/5 hover:text-white">
-                  <l.icon className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
-                  <span className="truncate">{l.name}</span>
-                </button>
-              ))}
-              {lists.map((l) => {
-                const active = page.kind === "list" && page.listId === l.id;
-                return (
-                  <div key={l.id} className={`group/li flex h-9 items-center gap-2 rounded-lg pl-2.5 pr-1 text-sm transition ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
-                    <button onClick={() => setPage({ kind: "list", listId: l.id })} className="flex flex-1 items-center gap-3 truncate text-left">
-                      <FolderKanban className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
+            <button
+              onClick={() => setListsOpen((v) => !v)}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/45 transition hover:text-white"
+            >
+              <ChevronRight className={`size-3 chev ${listsOpen ? "open" : ""}`} />
+              <span>My lists</span>
+            </button>
+            {listsOpen && (
+              <div className="flex flex-col gap-0.5">
+                {builtInLists.map((l) => {
+                  const active = page.kind === "list" && page.listId === l.id;
+                  return (
+                    <button
+                      key={l.id}
+                      onClick={() => setPage({ kind: "list", listId: l.id })}
+                      className={`flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm transition ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}
+                    >
+                      <l.icon className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
                       <span className="truncate">{l.name}</span>
                     </button>
-                    <button onClick={() => onDeleteList(l.id)} className="hidden size-6 place-items-center rounded text-white/40 hover:bg-white/10 hover:text-red-300 group-hover/li:grid" title="Delete list">
-                      <Trash2 className="size-3" />
-                    </button>
-                  </div>
-                );
-              })}
-              {creating ? (
-                <form onSubmit={(e) => { e.preventDefault(); const v = newName.trim(); if (v) { onCreateList(v); setNewName(""); } setCreating(false); }}>
-                  <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onBlur={() => { const v = newName.trim(); if (v) onCreateList(v); setNewName(""); setCreating(false); }} placeholder="List name..." className="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-2.5 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
-                </form>
-              ) : (
-                <button onClick={() => setCreating(true)} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/40 transition hover:bg-white/5 hover:text-white">
-                  <Plus className="size-4 shrink-0" />
-                  <span>Create new list</span>
-                </button>
-              )}
-            </div>
+                  );
+                })}
+                {lists.map((l) => {
+                  const active = page.kind === "list" && page.listId === l.id;
+                  return (
+                    <div key={l.id} className={`group/li flex h-9 items-center gap-2 rounded-lg pl-2.5 pr-1 text-sm transition ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+                      <button onClick={() => setPage({ kind: "list", listId: l.id })} className="flex flex-1 items-center gap-3 truncate text-left">
+                        <FolderKanban className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
+                        <span className="truncate">{l.name}</span>
+                      </button>
+                      <button onClick={() => onDeleteList(l.id)} className="hidden size-6 place-items-center rounded text-white/40 hover:bg-white/10 hover:text-red-300 group-hover/li:grid" title="Delete list">
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                {creating ? (
+                  <form onSubmit={(e) => { e.preventDefault(); const v = newName.trim(); if (v) { onCreateList(v); setNewName(""); } setCreating(false); }}>
+                    <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onBlur={() => { const v = newName.trim(); if (v) onCreateList(v); setNewName(""); setCreating(false); }} placeholder="List name..." className="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-2.5 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
+                  </form>
+                ) : (
+                  <button onClick={() => setCreating(true)} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/40 transition hover:bg-white/5 hover:text-white">
+                    <Plus className="size-4 shrink-0" />
+                    <span>Create new list</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
+
       </div>
 
       {/* Bottom user card */}
