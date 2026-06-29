@@ -463,7 +463,7 @@ function HomePage({
 
   return (
     <>
-      {/* Hero: Tasks 2.0 + greeting */}
+      {/* Hero: Tasks 2.0 */}
       <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-[#121725]/60 p-10 text-center">
         <div className="mesh-bg" />
         <div className="dot-grid" />
@@ -473,12 +473,15 @@ function HomePage({
             <span className="gradient-text">2.0</span>
           </h1>
           <p className="mt-2 text-sm text-white/40">Don't forget yours.</p>
-          <div key={profile.name} className="greet-in mt-7">
-            <div className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{timeGreeting(profile.name)}</div>
-            <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
-          </div>
         </div>
       </section>
+
+      {/* Greeting — below hero */}
+      <div key={profile.name} className="greet-in mt-8">
+        <div className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{timeGreeting(profile.name)}</div>
+        <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
+      </div>
+
 
       {/* Inline conversation — above the command bar */}
       {messages.length > 0 && (
