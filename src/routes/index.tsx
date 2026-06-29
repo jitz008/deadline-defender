@@ -155,7 +155,16 @@ function PulseTasks() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "AI error");
-      setPanel(parseAiText(data.text));
+      const parsed = parseAiText(data.text);
+      // Auto-add any tasks the AI captured from the user's message
+      const added = parsed.suggestions.map((s) =>
+        tasksStore.add({
+          title: s.title,
+          priority: (s.priority as Priority) || "medium",
+          due: s.due,
+        }).id,
+      );
+      setPanel({ ...parsed, addedIds: added });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong";
       setError(msg);
