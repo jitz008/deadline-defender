@@ -3,18 +3,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Star, CalendarClock, Activity, History,
   Sparkles, Mic, X, Lightbulb, Plus, Check,
-  LogOut, Clock, Trash2, User as UserIcon, ChevronUp, Info,
+  LogOut, Clock, Trash2, User as UserIcon, ChevronUp, ChevronRight, Info,
   PanelLeftClose, PanelLeftOpen, Inbox, Trophy, FolderKanban, Zap,
   CalendarDays, ListTodo, MoreHorizontal,
 } from "lucide-react";
 import { tasksStore, useTasks, type Priority, type Task, type TaskCategory } from "@/lib/tasks";
 import { listsStore, useLists, type UserList } from "@/lib/lists";
-import { allIntegrationItems, mockCalendarEvents, mockGoogleTasks, type IntegrationItem } from "@/lib/integrations";
+import { mockCalendarEvents, mockGoogleTasks, type IntegrationItem } from "@/lib/integrations";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { InteractiveDotGrid } from "@/components/InteractiveDotGrid";
 import { Calendar } from "@/components/ui/calendar";
 
 export const Route = createFileRoute("/")({ component: PulseTasks });
+
 
 // ============ Types & Parsing ============
 type Block = { time: string; task: string; priority: Priority };
@@ -131,9 +132,9 @@ type Page =
   | { kind: "previous" }
   | { kind: "list"; listId: string };
 
-const topNav: { key: Page["kind"]; icon: typeof Home; label: string; badge?: string }[] = [
-  { key: "plan", icon: CalendarClock, label: "Today's plan", badge: "AI" },
+const topNav: { key: Page["kind"]; icon: typeof Home; label: string }[] = [
   { key: "home", icon: Home, label: "Home" },
+  { key: "plan", icon: CalendarClock, label: "Today's plan" },
   { key: "starred", icon: Star, label: "Starred" },
   { key: "habits", icon: Activity, label: "Habit tracker" },
   { key: "previous", icon: History, label: "Previous tasks" },
@@ -144,11 +145,12 @@ const integrationLinks: { to: string; icon: typeof CalendarDays; label: string; 
   { to: "/google-tasks", icon: ListTodo, label: "Google Tasks", badgeClass: "text-sky-300" },
 ];
 
-const builtInLists: { name: string; icon: typeof Inbox }[] = [
-  { name: "My Tasks", icon: Inbox },
-  { name: "Hackathon Tasks", icon: Trophy },
-  { name: "Personal Inbox", icon: FolderKanban },
+const builtInLists: { id: string; name: string; icon: typeof Inbox }[] = [
+  { id: "builtin:my-tasks", name: "My Tasks", icon: Inbox },
+  { id: "builtin:hackathon", name: "Hackathon Tasks", icon: Trophy },
+  { id: "builtin:personal", name: "Personal Inbox", icon: FolderKanban },
 ];
+
 
 function Sidebar({
   page, setPage, profile, onAvatar, pinned, setPinned, hovered, setHovered, lists, onCreateList, onDeleteList,
@@ -161,6 +163,8 @@ function Sidebar({
   const expanded = pinned || hovered;
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [listsOpen, setListsOpen] = useState(true);
+
 
   return (
     <aside
@@ -197,11 +201,9 @@ function Sidebar({
               {active && <span className="absolute left-[-12px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#5B8DEF]" />}
               <it.icon className="size-5 shrink-0" strokeWidth={1.75} />
               {expanded && (
-                <>
-                  <span className="flex-1 truncate text-left">{it.label}</span>
-                  {it.badge && <span className="rounded bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{it.badge}</span>}
-                </>
+                <span className="flex-1 truncate text-left">{it.label}</span>
               )}
+
             </button>
           );
         })}
@@ -222,41 +224,57 @@ function Sidebar({
 
         {expanded && (
           <div className="mt-4">
-            <div className="px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">My lists</div>
-            <div className="flex flex-col gap-0.5">
-              {builtInLists.map((l) => (
-                <button key={l.name} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/65 transition hover:bg-white/5 hover:text-white">
-                  <l.icon className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
-                  <span className="truncate">{l.name}</span>
-                </button>
-              ))}
-              {lists.map((l) => {
-                const active = page.kind === "list" && page.listId === l.id;
-                return (
-                  <div key={l.id} className={`group/li flex h-9 items-center gap-2 rounded-lg pl-2.5 pr-1 text-sm transition ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
-                    <button onClick={() => setPage({ kind: "list", listId: l.id })} className="flex flex-1 items-center gap-3 truncate text-left">
-                      <FolderKanban className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
+            <button
+              onClick={() => setListsOpen((v) => !v)}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/45 transition hover:text-white"
+            >
+              <ChevronRight className={`size-3 chev ${listsOpen ? "open" : ""}`} />
+              <span>My lists</span>
+            </button>
+            {listsOpen && (
+              <div className="flex flex-col gap-0.5">
+                {builtInLists.map((l) => {
+                  const active = page.kind === "list" && page.listId === l.id;
+                  return (
+                    <button
+                      key={l.id}
+                      onClick={() => setPage({ kind: "list", listId: l.id })}
+                      className={`flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm transition ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}
+                    >
+                      <l.icon className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
                       <span className="truncate">{l.name}</span>
                     </button>
-                    <button onClick={() => onDeleteList(l.id)} className="hidden size-6 place-items-center rounded text-white/40 hover:bg-white/10 hover:text-red-300 group-hover/li:grid" title="Delete list">
-                      <Trash2 className="size-3" />
-                    </button>
-                  </div>
-                );
-              })}
-              {creating ? (
-                <form onSubmit={(e) => { e.preventDefault(); const v = newName.trim(); if (v) { onCreateList(v); setNewName(""); } setCreating(false); }}>
-                  <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onBlur={() => { const v = newName.trim(); if (v) onCreateList(v); setNewName(""); setCreating(false); }} placeholder="List name..." className="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-2.5 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
-                </form>
-              ) : (
-                <button onClick={() => setCreating(true)} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/40 transition hover:bg-white/5 hover:text-white">
-                  <Plus className="size-4 shrink-0" />
-                  <span>Create new list</span>
-                </button>
-              )}
-            </div>
+                  );
+                })}
+                {lists.map((l) => {
+                  const active = page.kind === "list" && page.listId === l.id;
+                  return (
+                    <div key={l.id} className={`group/li flex h-9 items-center gap-2 rounded-lg pl-2.5 pr-1 text-sm transition ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+                      <button onClick={() => setPage({ kind: "list", listId: l.id })} className="flex flex-1 items-center gap-3 truncate text-left">
+                        <FolderKanban className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
+                        <span className="truncate">{l.name}</span>
+                      </button>
+                      <button onClick={() => onDeleteList(l.id)} className="hidden size-6 place-items-center rounded text-white/40 hover:bg-white/10 hover:text-red-300 group-hover/li:grid" title="Delete list">
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                {creating ? (
+                  <form onSubmit={(e) => { e.preventDefault(); const v = newName.trim(); if (v) { onCreateList(v); setNewName(""); } setCreating(false); }}>
+                    <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onBlur={() => { const v = newName.trim(); if (v) onCreateList(v); setNewName(""); setCreating(false); }} placeholder="List name..." className="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-2.5 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
+                  </form>
+                ) : (
+                  <button onClick={() => setCreating(true)} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/40 transition hover:bg-white/5 hover:text-white">
+                    <Plus className="size-4 shrink-0" />
+                    <span>Create new list</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
+
       </div>
 
       {/* Bottom user card */}
@@ -448,7 +466,21 @@ function PulseTasks() {
 
   const quickActions = ["Break it down", "Rescue me", "Plan my day", "Habit check"];
   const expanded = sidebarPinned || sidebarHovered;
-  const activeList = page.kind === "list" ? lists.find((l) => l.id === page.listId) : null;
+  const activeList: UserList | null = page.kind === "list"
+    ? (lists.find((l) => l.id === page.listId)
+      || (builtInLists.find((b) => b.id === page.listId)
+        ? { id: page.listId, name: builtInLists.find((b) => b.id === page.listId)!.name, createdAt: 0 }
+        : null))
+    : null;
+
+  // Scroll-based top bar transparency
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="min-h-screen transition-[padding] duration-200 ease-out" style={{ paddingLeft: expanded ? 250 : 64 }}>
@@ -467,7 +499,7 @@ function PulseTasks() {
         <div key={f.id} className="pointer-events-none fixed z-50 float-up text-sm font-bold text-emerald-300" style={{ left: f.x, top: f.y }}>+2</div>
       ))}
 
-      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-black/40 px-6 backdrop-blur-xl">
+      <header className={`sticky top-0 z-20 flex h-12 items-center justify-end gap-2 px-6 ${scrolled ? "topbar-frosted" : "topbar-transparent"}`}>
         <LiveClock />
         <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
           <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400/70"}`} />
@@ -525,23 +557,27 @@ function PulseTasks() {
   );
 }
 
-// ============ Chat scroll container (fixes: single scrollbar + no page jump) ============
-function ChatScroll({ messages, ask }: { messages: ChatMsg[]; ask: (q: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
+// ============ Chat scroll container — single scrollbar, always sticks to bottom ============
+function ChatScroll({ messages, ask, aiActive }: { messages: ChatMsg[]; ask: (q: string) => void; aiActive?: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    // Scroll INSIDE the container only — never bubble to the page
-    const el = ref.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length, aiActive]);
   return (
-    <div ref={ref} className="max-h-[55vh] space-y-5 overflow-y-auto overscroll-contain pr-1">
+    <div
+      ref={scrollRef}
+      className="flex max-h-[55vh] min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain pr-1"
+    >
       {messages.map((m, i) => m.role === "user"
         ? <UserBubble key={i} text={m.text} />
         : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
       )}
+      <div ref={bottomRef} />
     </div>
   );
 }
+
 
 // ============ Home Page ============
 function HomePage({
@@ -581,7 +617,7 @@ function HomePage({
             <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
             <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
           </div>
-          <ChatScroll messages={messages} ask={ask} />
+          <ChatScroll messages={messages} ask={ask} aiActive={aiActive} />
         </section>
       )}
 
@@ -597,7 +633,7 @@ function HomePage({
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
               tasks={tasks.filter((t) => t.priority === p && !t.done && !t.listId)}
-              integrations={allIntegrationItems().filter((i) => i.priority === p)}
+              integrations={[]}
               onInsight={(t) => ask(`Give me insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)}
               onToggle={onToggle} onStar={onStar}
             />
@@ -645,7 +681,7 @@ function CustomListPage({
       {messages.length > 0 && (
         <section className="slide-down mt-6 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
           <div className="mb-3 flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
-          <ChatScroll messages={messages} ask={ask} />
+          <ChatScroll messages={messages} ask={ask} aiActive={aiActive} />
         </section>
       )}
 
@@ -1069,12 +1105,26 @@ function computeStats(tasks: Task[]) {
 
 function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
   const stats = useMemo(() => computeStats(tasks), [tasks]);
+  const hasData = stats.assigned > 0;
   return (
     <section className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-white">Habit tracker</h2>
         <p className="mt-1 text-sm text-white/50">Lifetime telemetry on consistency, focus, and velocity.</p>
       </div>
+
+      {!hasData && (
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 px-6 py-16 text-center">
+          <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-gradient-to-br from-[#5B8DEF]/30 to-[#8B5CF6]/30">
+            <Activity className="size-5 text-white/70" />
+          </div>
+          <div className="text-base font-semibold text-white">Complete some tasks to unlock insights</div>
+          <p className="mt-1 text-sm text-white/50">Your pulse rating, streaks, and Gemini coaching appear once you have data.</p>
+        </div>
+      )}
+
+      {hasData && <>
+
 
       {/* Top row: Pulse ring + streak + totals */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -1182,7 +1232,9 @@ function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
 
       {/* Gemini insights */}
       <GeminiInsights stats={stats} profile={profile} />
+      </>}
     </section>
+
   );
 }
 
@@ -1294,10 +1346,12 @@ function GeminiInsights({ stats, profile }: { stats: ReturnType<typeof computeSt
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
+    if (stats.assigned === 0) { setLoading(false); setInsights([]); return; }
     let cancelled = false;
     async function run() {
       setLoading(true); setErr(null);
       try {
+
         const res = await fetch("/api/gemini-insights", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1435,20 +1489,33 @@ function IntegrationRow({ item }: { item: IntegrationItem }) {
 }
 
 function LiveClock() {
-  const [now, setNow] = useState(() => new Date());
+  // SSR-safe: render empty placeholder until mounted, then tick every 30s with real device time.
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
+  if (!now) {
+    return (
+      <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/40 sm:flex">
+        <Clock className="size-3 text-white/40" />
+        <span>—</span>
+      </div>
+    );
+  }
+  const time = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
+  const date = now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   return (
     <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/60 sm:flex">
       <Clock className="size-3 text-white/40" />
-      <span suppressHydrationWarning>{now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+      <span>{time}</span>
       <span className="text-white/30">·</span>
-      <span suppressHydrationWarning>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
+      <span>{date}</span>
     </div>
   );
 }
+
 
 // ============ History Panel (complete archive view) ============
 function HistoryPanel({ sessions, onClose, onPick, onClear }: { sessions: ChatSession[]; onClose: () => void; onPick: (s: ChatSession) => void; onClear: () => void }) {
