@@ -587,51 +587,73 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
 
   return (
     <div className={`${colClass} rounded-2xl p-4 backdrop-blur-md`}>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${dotColor(priority)}`} /><span className="text-sm font-semibold text-white">{title}</span></div>
-        <span className="text-xs text-white/40">{tasks.filter((t) => !t.done).length}</span>
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-sm font-medium text-white/90">{title}</span>
+        <span className={`size-2 rounded-full ${dotColor(priority)}`} />
       </div>
       <div className="space-y-2">
         {tasks.map((t) => <TaskRow key={t.id} task={t} onInsight={() => onInsight(t)} onToggle={onToggle} onStar={onStar} />)}
-        {tasks.length === 0 && <div className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">Nothing here.</div>}
       </div>
       {adding ? (
         <form onSubmit={(e) => { e.preventDefault(); if (val.trim()) tasksStore.add({ title: val.trim(), priority }); setVal(""); setAdding(false); }} className="mt-2">
           <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} onBlur={() => { if (!val.trim()) setAdding(false); }} placeholder="New task..." className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
         </form>
       ) : (
-        <button onClick={() => setAdding(true)} className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"><Plus className="size-4" /> Add Task</button>
+        <button onClick={() => setAdding(true)} className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/40 transition hover:bg-white/5 hover:text-white"><Plus className="size-4" /> Add Task</button>
       )}
     </div>
   );
 }
 
 function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight: () => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  // Demo: deterministic 0/5 or 2/5 based on priority
+  const totalSteps = 5;
+  const doneSteps = task.priority === "high" && task.title.toLowerCase().includes("pitch") ? 2 : 0;
   return (
-    <div className="group fade-in flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3 transition hover:-translate-y-px hover:border-white/15 hover:bg-white/[0.05]">
-      <button onClick={(e) => onToggle(task.id, e)} className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border transition ${task.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/30 hover:border-white"}`} aria-label="Toggle">
-        {task.done && <Check className="size-3 text-emerald-300" />}
-      </button>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className={`size-1.5 shrink-0 rounded-full ${dotColor(task.priority)}`} />
-          <span className={`truncate text-sm ${task.done ? "text-white/40 line-through" : "text-white"}`}>{task.title}</span>
-        </div>
-        {(task.group || task.due) && (
-          <div className="mt-0.5 flex items-center gap-2 pl-3.5 text-xs text-white/40">
-            {task.group && <span>{task.group}</span>}
-            {task.group && task.due && <span>·</span>}
-            {task.due && <span className="time-pill"><Clock className="size-3" />{task.due}</span>}
+    <div className="fade-in rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-white/15 hover:bg-white/[0.05]">
+      <div className="flex items-start gap-3">
+        <button onClick={(e) => onToggle(task.id, e)} className={`mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition ${task.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/25 hover:border-white"}`} aria-label="Toggle">
+          {task.done && <Check className="size-3 text-emerald-300" />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className={`size-1.5 shrink-0 rounded-full ${dotColor(task.priority)}`} />
+            <span className={`truncate text-[13.5px] ${task.done ? "text-white/40 line-through" : "text-white"}`}>{task.title}</span>
           </div>
-        )}
+          {(task.group || task.due) && (
+            <div className="mt-1 flex items-center gap-2 pl-3.5 text-xs text-white/40">
+              {task.group && <span className="flex items-center gap-1"><UserIcon className="size-3" />{task.group}</span>}
+              {task.due && <span className="time-pill"><Clock className="size-3" />{task.due}</span>}
+            </div>
+          )}
+        </div>
+        <button onClick={() => onStar(task.id)} className="shrink-0 transition hover:scale-110" aria-label="Star">
+          <Star className={`size-3.5 transition ${task.starred ? "fill-amber-300 text-amber-300" : "text-white/20 hover:text-white/60"}`} />
+        </button>
       </div>
-      <button onClick={() => onStar(task.id)} className="transition hover:scale-110" aria-label="Star">
-        <Star className={`size-4 transition ${task.starred ? "fill-amber-300 text-amber-300" : "text-white/30 hover:text-white/60"}`} />
-      </button>
-      <button onClick={onInsight} className="opacity-0 transition group-hover:opacity-100" aria-label="Insights" title="Insights"><Lightbulb className="size-4 text-[#4f8ef7]" /></button>
+      <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-2 pl-[26px]">
+        <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-xs text-[#7dafff] transition hover:text-white">
+          <ChevronRight className={`size-3 transition ${open ? "rotate-90" : ""}`} /> Prep steps ({doneSteps}/{totalSteps})
+        </button>
+        <button onClick={onInsight} className="flex items-center gap-1 text-xs text-white/50 transition hover:text-[#7dafff]" aria-label="Insights">
+          <Lightbulb className="size-3" /> Insights
+        </button>
+      </div>
+      {open && (
+        <div className="slide-down mt-2 space-y-1 pl-[26px] text-xs text-white/50">
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className={`size-1 rounded-full ${i < doneSteps ? "bg-emerald-400" : "bg-white/20"}`} />
+              <span className={i < doneSteps ? "line-through text-white/30" : ""}>Step {i + 1}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ============ Starred ============
 function StarredPage({ tasks, onToggle, onStar }: { tasks: Task[]; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
