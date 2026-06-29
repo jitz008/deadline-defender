@@ -971,7 +971,7 @@ function IntegrationRow({ item }: { item: IntegrationItem }) {
       <div className={`grid size-[18px] shrink-0 place-items-center rounded-[5px] border ${item.source === "calendar" ? "border-blue-400/50 bg-blue-500/15" : "border-sky-400/50 bg-sky-500/15"}`}>
         {item.source === "calendar" ? <CalendarDays className="size-3 text-blue-200" /> : <ListTodo className="size-3 text-sky-200" />}
       </div>
-      <span className="min-w-0 flex-1 truncate text-[13.5px] text-white/95">{item.title}</span>
+      <span className="min-w-0 flex-1 line-clamp-2 text-[13.5px] leading-snug text-white/95">{item.title}</span>
       {item.due && <span className="shrink-0 text-[11px] text-white/45">{item.due}</span>}
       <SourceBadge source={item.source} />
     </div>
