@@ -25,6 +25,9 @@ export function InteractiveDotGrid({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const c = canvas;
+    const g = ctx;
+
 
     let raf = 0;
     const dpr = window.devicePixelRatio || 1;
