@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Star, ListChecks, CalendarClock, Activity, History,
   Search, Sparkles, Mic, ArrowUp, X, Lightbulb, Plus, Check,
-  LogOut, Clock, Trash2, User as UserIcon,
+  LogOut, Clock, Trash2, User as UserIcon, ChevronRight, ChevronUp, Info,
 } from "lucide-react";
 import { tasksStore, useTasks, type Priority, type Task } from "@/lib/tasks";
 
