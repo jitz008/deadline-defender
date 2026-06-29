@@ -183,10 +183,11 @@
 }
 .fade-in { animation: fade-in 0.2s ease-out; }
 
-/* Priority column tints — very subtle, ~10-15% tint on border only */
-.col-high   { background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(239, 100, 100, 0.12); }
-.col-medium { background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(230, 180, 80, 0.12); }
-.col-low    { background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(80, 200, 130, 0.12); }
+/* Priority column tints — subtle color gradients from top, slightly stronger borders */
+.col-high   { background: linear-gradient(180deg, rgba(239, 100, 100, 0.08) 0%, rgba(255, 255, 255, 0.015) 45%); border: 1px solid rgba(239, 100, 100, 0.18); }
+.col-medium { background: linear-gradient(180deg, rgba(230, 180, 80, 0.08) 0%, rgba(255, 255, 255, 0.015) 45%); border: 1px solid rgba(230, 180, 80, 0.18); }
+.col-low    { background: linear-gradient(180deg, rgba(80, 200, 130, 0.08) 0%, rgba(255, 255, 255, 0.015) 45%); border: 1px solid rgba(80, 200, 130, 0.18); }
+
 .dot-high   { background: rgba(239, 100, 100, 0.6); }
 .dot-medium { background: rgba(230, 180, 80, 0.6); }
 .dot-low    { background: rgba(80, 200, 130, 0.6); }
