@@ -906,41 +906,94 @@ function Stat({ label, v }: { label: string; v: number | string }) {
 // ============ Previous ============
 function PreviousPage({ tasks }: { tasks: Task[] }) {
   const [q, setQ] = useState("");
-  const completed = tasks.filter((t) => t.done && t.title.toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
-  const groups: Record<string, Task[]> = {};
-  for (const t of completed) {
-    const d = new Date(t.completedAt || 0); const today = new Date();
-    const sameDay = d.toDateString() === today.toDateString();
-    const yest = new Date(); yest.setDate(yest.getDate() - 1);
-    const key = sameDay ? "Today" : d.toDateString() === yest.toDateString() ? "Yesterday" : d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
-    (groups[key] ||= []).push(t);
-  }
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const completed = tasks.filter((t) => {
+    if (!t.done) return false;
+    if (q && !t.title.toLowerCase().includes(q.toLowerCase())) return false;
+    if (selectedDate) {
+      const d = new Date(t.completedAt || 0);
+      if (d.toDateString() !== selectedDate.toDateString()) return false;
+    }
+    return true;
+  }).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between">
         <h2 className="text-xl font-semibold text-white">Previous tasks</h2>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter..." className="h-9 w-64 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
       </div>
-      {Object.keys(groups).length === 0 && <div className="rounded-2xl border border-white/8 bg-[#121725]/60 px-3 py-12 text-center text-sm text-white/50">No completed tasks yet.</div>}
-      {Object.entries(groups).map(([k, list]) => (
-        <div key={k}>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">{k}</div>
-          <div className="space-y-2 rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
-            {list.map((t) => (
-              <div key={t.id} className="flex items-center gap-3 px-2 py-1.5">
-                <Check className="size-4 text-emerald-300" />
-                <span className={`size-1.5 rounded-full dot-${t.priority}`} />
-                <span className="flex-1 text-sm text-white/50 line-through">{t.title}</span>
-                {t.due && <span className="text-[11px] text-white/35">{t.due}</span>}
-              </div>
-            ))}
-          </div>
+      <div className="grid gap-4 md:grid-cols-[auto_1fr]">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
+          <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="pointer-events-auto" />
+          {selectedDate && (
+            <button onClick={() => setSelectedDate(undefined)} className="mt-2 w-full rounded-md border border-white/10 px-2 py-1 text-xs text-white/60 hover:bg-white/5 hover:text-white">Clear date</button>
+          )}
         </div>
-      ))}
+        <div className="space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+            {selectedDate ? selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }) : "All completed"}
+          </div>
+          {completed.length === 0 && <div className="rounded-2xl border border-white/8 bg-[#121725]/60 px-3 py-12 text-center text-sm text-white/50">No completed tasks for this date.</div>}
+          {completed.length > 0 && (
+            <div className="space-y-2 rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
+              {completed.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 px-2 py-1.5">
+                  <Check className="size-4 text-emerald-300" />
+                  <span className={`size-1.5 rounded-full dot-${t.priority}`} />
+                  <span className="flex-1 text-sm text-white/50 line-through">{t.title}</span>
+                  {t.due && <span className="text-[11px] text-white/35">{t.due}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </section>
   );
 }
+
+// ============ Integration row + Live clock + Source badge ============
+function SourceBadge({ source }: { source: IntegrationItem["source"] }) {
+  const cls = source === "calendar" ? "badge-calendar" : "badge-gtasks";
+  const label = source === "calendar" ? "Calendar" : "Tasks";
+  const Icon = source === "calendar" ? CalendarDays : ListTodo;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>
+      <Icon className="size-2.5" />{label}
+    </span>
+  );
+}
+
+function IntegrationRow({ item }: { item: IntegrationItem }) {
+  return (
+    <div className="fade-in flex items-center gap-3 rounded-xl border border-white/5 bg-[#0d1422]/70 px-3 py-2.5 transition hover:border-white/15">
+      <div className={`grid size-[18px] shrink-0 place-items-center rounded-[5px] border ${item.source === "calendar" ? "border-blue-400/50 bg-blue-500/15" : "border-sky-400/50 bg-sky-500/15"}`}>
+        {item.source === "calendar" ? <CalendarDays className="size-3 text-blue-200" /> : <ListTodo className="size-3 text-sky-200" />}
+      </div>
+      <span className="min-w-0 flex-1 truncate text-[13.5px] text-white/95">{item.title}</span>
+      {item.due && <span className="shrink-0 text-[11px] text-white/45">{item.due}</span>}
+      <SourceBadge source={item.source} />
+    </div>
+  );
+}
+
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/60 sm:flex">
+      <Clock className="size-3 text-white/40" />
+      <span>{now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+      <span className="text-white/30">·</span>
+      <span>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
+    </div>
+  );
+}
+
 
 // ============ History Panel ============
 function HistoryPanel({ sessions, onClose, onPick, onClear }: { sessions: ChatSession[]; onClose: () => void; onPick: (s: ChatSession) => void; onClear: () => void }) {
