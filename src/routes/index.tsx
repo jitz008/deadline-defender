@@ -132,9 +132,9 @@ type Page =
   | { kind: "previous" }
   | { kind: "list"; listId: string };
 
-const topNav: { key: Page["kind"]; icon: typeof Home; label: string; badge?: string }[] = [
-  { key: "plan", icon: CalendarClock, label: "Today's plan", badge: "AI" },
+const topNav: { key: Page["kind"]; icon: typeof Home; label: string }[] = [
   { key: "home", icon: Home, label: "Home" },
+  { key: "plan", icon: CalendarClock, label: "Today's plan" },
   { key: "starred", icon: Star, label: "Starred" },
   { key: "habits", icon: Activity, label: "Habit tracker" },
   { key: "previous", icon: History, label: "Previous tasks" },
@@ -145,11 +145,12 @@ const integrationLinks: { to: string; icon: typeof CalendarDays; label: string; 
   { to: "/google-tasks", icon: ListTodo, label: "Google Tasks", badgeClass: "text-sky-300" },
 ];
 
-const builtInLists: { name: string; icon: typeof Inbox }[] = [
-  { name: "My Tasks", icon: Inbox },
-  { name: "Hackathon Tasks", icon: Trophy },
-  { name: "Personal Inbox", icon: FolderKanban },
+const builtInLists: { id: string; name: string; icon: typeof Inbox }[] = [
+  { id: "builtin:my-tasks", name: "My Tasks", icon: Inbox },
+  { id: "builtin:hackathon", name: "Hackathon Tasks", icon: Trophy },
+  { id: "builtin:personal", name: "Personal Inbox", icon: FolderKanban },
 ];
+
 
 function Sidebar({
   page, setPage, profile, onAvatar, pinned, setPinned, hovered, setHovered, lists, onCreateList, onDeleteList,
