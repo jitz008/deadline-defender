@@ -509,7 +509,7 @@ function HomePage({
 
       {/* Greeting — below hero */}
       <div key={profile.name} className="greet-in mt-8">
-        <div className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{timeGreeting(profile.name)}</div>
+        <div className="text-3xl font-semibold tracking-tight text-white md:text-4xl"><span className="wave-text">{timeGreeting(profile.name)}</span></div>
         <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
       </div>
 
