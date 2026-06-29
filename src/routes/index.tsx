@@ -697,7 +697,7 @@ function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight:
       <button onClick={(e) => onToggle(task.id, e)} className={`grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition ${task.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/25 hover:border-white"}`} aria-label="Toggle">
         {task.done && <Check className="size-3 text-emerald-300" />}
       </button>
-      <span className={`min-w-0 flex-1 truncate text-[13.5px] ${task.done ? "text-white/40 line-through" : "text-white/95"}`}>{task.title}</span>
+      <span className={`min-w-0 flex-1 break-words text-[13.5px] ${task.done ? "text-white/40 line-through" : "text-white/95"}`}>{task.title}</span>
       {shortTime && <span className="shrink-0 text-[11px] text-white/45">{shortTime}</span>}
       <button onClick={() => onStar(task.id)} className="shrink-0 transition hover:scale-110" aria-label="Star">
         <Star className={`size-3.5 transition ${task.starred ? "fill-amber-300 text-amber-300" : "text-white/20 hover:text-white/60"}`} />
