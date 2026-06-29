@@ -987,9 +987,9 @@ function LiveClock() {
   return (
     <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/60 sm:flex">
       <Clock className="size-3 text-white/40" />
-      <span>{now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+      <span suppressHydrationWarning>{now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
       <span className="text-white/30">·</span>
-      <span>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
+      <span suppressHydrationWarning>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
     </div>
   );
 }
