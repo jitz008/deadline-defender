@@ -416,7 +416,7 @@ function PulseTasks() {
 
   return (
     <div className="min-h-screen transition-[padding] duration-200 ease-out" style={{ paddingLeft: expanded ? 250 : 64 }}>
-      <div className="page-mesh" />
+      <AnimatedBackground />
       <Sidebar
         page={page} setPage={setPage} profile={profile}
         onAvatar={() => setShowProfile(true)}
@@ -430,7 +430,8 @@ function PulseTasks() {
       ))}
 
       {/* Top mini bar */}
-      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-[#0A0E17]/80 px-6 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-black/40 px-6 backdrop-blur-xl">
+        <LiveClock />
         <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
           <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400/70"}`} />
           {aiActive ? "Gemini thinking" : "Gemini standby"}
@@ -438,8 +439,9 @@ function PulseTasks() {
         <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white" aria-label="History">
           <History className="size-4" />
         </button>
-        <button className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></button>
+        <Link to="/login" className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></Link>
       </header>
+
 
       {/* Pulse score chip */}
       <div className={`fixed bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0d0f14]/80 px-3 py-1.5 text-xs backdrop-blur-xl ${scorePop ? "score-pop" : ""}`}>
