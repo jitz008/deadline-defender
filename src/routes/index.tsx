@@ -494,16 +494,16 @@ function HomePage({
 
   return (
     <>
-      {/* Hero: Tasks 2.0 — feathered edges */}
-      <section className="feather-mask relative overflow-hidden p-10 text-center">
-        <div className="mesh-bg" />
-        <InteractiveDotGrid baseOpacity={0.18} influence={160} />
+      {/* Hero: Tasks 2.0 — framed card with dot grid */}
+      <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(ellipse_at_center,_rgba(30,58,138,0.35),_rgba(2,6,23,0.92)_72%)] p-12 text-center shadow-[0_10px_40px_-10px_rgba(0,0,0,0.6)]">
+        <InteractiveDotGrid baseOpacity={0.22} influence={160} />
+        <div className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,_black_55%,_transparent_100%)]" />
         <div className="relative z-10">
           <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
-            <span className="text-white">Tasks </span>
-            <span className="gradient-text">2.0</span>
+            <span className="text-white/90">Tasks </span>
+            <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent">2.0</span>
           </h1>
-          <p className="mt-2 text-sm text-white/40">Don't forget yours.</p>
+          <p className="mt-3 text-sm text-white/45">Don't forget yours!</p>
         </div>
       </section>
 
