@@ -306,13 +306,7 @@ function PulseTasks() {
               parsed={panel}
               onClose={() => setPanel(null)}
               onFollowUp={(q) => ask(q)}
-              onAdd={(s) => {
-                tasksStore.add({
-                  title: s.title,
-                  priority: (s.priority as Priority) || "medium",
-                  due: s.due,
-                });
-              }}
+              onUndo={(id) => tasksStore.remove(id)}
             />
           )}
         </section>
