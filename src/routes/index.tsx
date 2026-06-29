@@ -1232,7 +1232,9 @@ function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
 
       {/* Gemini insights */}
       <GeminiInsights stats={stats} profile={profile} />
+      </>}
     </section>
+
   );
 }
 
