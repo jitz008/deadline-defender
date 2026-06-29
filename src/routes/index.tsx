@@ -499,7 +499,7 @@ function PulseTasks() {
         <div key={f.id} className="pointer-events-none fixed z-50 float-up text-sm font-bold text-emerald-300" style={{ left: f.x, top: f.y }}>+2</div>
       ))}
 
-      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-black/40 px-6 backdrop-blur-xl">
+      <header className={`sticky top-0 z-20 flex h-12 items-center justify-end gap-2 px-6 ${scrolled ? "topbar-frosted" : "topbar-transparent"}`}>
         <LiveClock />
         <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
           <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400/70"}`} />
