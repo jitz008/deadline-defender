@@ -554,7 +554,7 @@ function HomePage({
           </div>
           <div className="mt-3 flex flex-wrap gap-2 px-1">
             {quickActions.map((q) => (
-              <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/8 bg-white/[0.02] px-3 py-1 text-xs text-white/65 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.06] hover:text-white">
+              <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/65 transition hover:-translate-y-px hover:border-white/25 hover:bg-white/[0.08] hover:text-white">
                 <span className="text-white/35">/</span> {q}
               </button>
             ))}
