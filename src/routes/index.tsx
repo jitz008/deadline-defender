@@ -617,7 +617,7 @@ function HomePage({
             <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
             <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
           </div>
-          <ChatScroll messages={messages} ask={ask} />
+          <ChatScroll messages={messages} ask={ask} aiActive={aiActive} />
         </section>
       )}
 
@@ -681,7 +681,7 @@ function CustomListPage({
       {messages.length > 0 && (
         <section className="slide-down mt-6 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
           <div className="mb-3 flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
-          <ChatScroll messages={messages} ask={ask} />
+          <ChatScroll messages={messages} ask={ask} aiActive={aiActive} />
         </section>
       )}
 
