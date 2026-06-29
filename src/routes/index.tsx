@@ -1105,12 +1105,26 @@ function computeStats(tasks: Task[]) {
 
 function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
   const stats = useMemo(() => computeStats(tasks), [tasks]);
+  const hasData = stats.assigned > 0;
   return (
     <section className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-white">Habit tracker</h2>
         <p className="mt-1 text-sm text-white/50">Lifetime telemetry on consistency, focus, and velocity.</p>
       </div>
+
+      {!hasData && (
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 px-6 py-16 text-center">
+          <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-gradient-to-br from-[#5B8DEF]/30 to-[#8B5CF6]/30">
+            <Activity className="size-5 text-white/70" />
+          </div>
+          <div className="text-base font-semibold text-white">Complete some tasks to unlock insights</div>
+          <p className="mt-1 text-sm text-white/50">Your pulse rating, streaks, and Gemini coaching appear once you have data.</p>
+        </div>
+      )}
+
+      {hasData && <>
+
 
       {/* Top row: Pulse ring + streak + totals */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
