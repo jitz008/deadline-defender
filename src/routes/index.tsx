@@ -126,6 +126,12 @@ const navItems: { key: Page; icon: typeof Home; label: string; badge?: string }[
   { key: "habits", icon: Activity, label: "Habit tracker" },
 ];
 
+const integrationLinks: { to: string; icon: typeof CalendarDays; label: string; badgeClass: string }[] = [
+  { to: "/calendar", icon: CalendarDays, label: "Google Calendar", badgeClass: "text-blue-300" },
+  { to: "/google-tasks", icon: ListTodo, label: "Google Tasks", badgeClass: "text-sky-300" },
+];
+
+
 const myLists = [
   { name: "My Tasks", icon: Inbox },
   { name: "Hackathon Tasks", icon: Trophy },
