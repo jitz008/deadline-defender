@@ -163,6 +163,8 @@ function Sidebar({
   const expanded = pinned || hovered;
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [listsOpen, setListsOpen] = useState(true);
+
 
   return (
     <aside
