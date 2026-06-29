@@ -1489,20 +1489,33 @@ function IntegrationRow({ item }: { item: IntegrationItem }) {
 }
 
 function LiveClock() {
-  const [now, setNow] = useState(() => new Date());
+  // SSR-safe: render empty placeholder until mounted, then tick every 30s with real device time.
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
+  if (!now) {
+    return (
+      <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/40 sm:flex">
+        <Clock className="size-3 text-white/40" />
+        <span>—</span>
+      </div>
+    );
+  }
+  const time = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
+  const date = now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   return (
     <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/60 sm:flex">
       <Clock className="size-3 text-white/40" />
-      <span suppressHydrationWarning>{now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+      <span>{time}</span>
       <span className="text-white/30">·</span>
-      <span suppressHydrationWarning>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
+      <span>{date}</span>
     </div>
   );
 }
+
 
 // ============ History Panel (complete archive view) ============
 function HistoryPanel({ sessions, onClose, onPick, onClear }: { sessions: ChatSession[]; onClose: () => void; onPick: (s: ChatSession) => void; onClear: () => void }) {
