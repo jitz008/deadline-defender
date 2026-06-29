@@ -495,7 +495,7 @@ function HomePage({
   return (
     <>
       {/* Hero: Tasks 2.0 — feathered edges */}
-      <section className="feather-mask relative overflow-hidden p-10 text-center">
+      <section className="feather-mask relative overflow-hidden rounded-3xl p-10 text-center">
         <div className="mesh-bg" />
         <InteractiveDotGrid baseOpacity={0.18} influence={160} />
         <div className="relative z-10">
