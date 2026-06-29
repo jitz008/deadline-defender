@@ -201,6 +201,21 @@ function Sidebar({
           {expanded && <span className="truncate">Previous tasks</span>}
         </button>
 
+        <div className="my-2 h-px bg-white/5" />
+        {expanded && <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">Integrations</div>}
+        {integrationLinks.map((it) => (
+          <Link
+            key={it.to}
+            to={it.to}
+            title={it.label}
+            className="group/btn flex h-10 items-center gap-3 rounded-xl px-2.5 text-sm text-white/55 transition hover:bg-white/5 hover:text-white"
+          >
+            <it.icon className={`size-5 shrink-0 ${it.badgeClass}`} strokeWidth={1.75} />
+            {expanded && <span className="flex-1 truncate text-left">{it.label}</span>}
+          </Link>
+        ))}
+
+
         {expanded && (
           <div className="mt-4">
             <div className="px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">My lists</div>
