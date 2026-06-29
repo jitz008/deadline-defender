@@ -466,7 +466,21 @@ function PulseTasks() {
 
   const quickActions = ["Break it down", "Rescue me", "Plan my day", "Habit check"];
   const expanded = sidebarPinned || sidebarHovered;
-  const activeList = page.kind === "list" ? lists.find((l) => l.id === page.listId) : null;
+  const activeList: UserList | null = page.kind === "list"
+    ? (lists.find((l) => l.id === page.listId)
+      || (builtInLists.find((b) => b.id === page.listId)
+        ? { id: page.listId, name: builtInLists.find((b) => b.id === page.listId)!.name, createdAt: 0 }
+        : null))
+    : null;
+
+  // Scroll-based top bar transparency
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="min-h-screen transition-[padding] duration-200 ease-out" style={{ paddingLeft: expanded ? 250 : 64 }}>
