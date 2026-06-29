@@ -477,9 +477,15 @@ function HomePage({
       </section>
 
       {/* Greeting — below hero */}
-      <div key={profile.name} className="greet-in mt-8">
-        <div className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{timeGreeting(profile.name)}</div>
-        <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
+      <div key={profile.name} className="greet-in mt-10">
+        <h1 className="greet-shimmer text-4xl font-semibold tracking-tight md:text-6xl lg:text-7xl">
+          {timeGreeting(profile.name).split(", ").map((part, i) => (
+            <span key={i} className="greet-word" style={{ animationDelay: `${i * 120}ms` }}>
+              {i === 0 ? `${part}, ` : part}
+            </span>
+          ))}
+        </h1>
+        <div className="mt-3 text-base text-white/45 md:text-lg greet-sub">Here's your day at a glance.</div>
       </div>
 
 
