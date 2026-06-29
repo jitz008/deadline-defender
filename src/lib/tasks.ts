@@ -10,6 +10,7 @@ export interface Task {
   notes?: string;
   due?: string; // human readable, e.g. "Today 3pm" or ISO
   group?: string; // e.g. "Sequoia Capital team"
+  starred?: boolean;
   createdAt: number;
   completedAt?: number;
 }
