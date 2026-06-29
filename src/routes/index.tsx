@@ -3,18 +3,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Star, CalendarClock, Activity, History,
   Sparkles, Mic, X, Lightbulb, Plus, Check,
-  LogOut, Clock, Trash2, User as UserIcon, ChevronUp, Info,
+  LogOut, Clock, Trash2, User as UserIcon, ChevronUp, ChevronRight, Info,
   PanelLeftClose, PanelLeftOpen, Inbox, Trophy, FolderKanban, Zap,
   CalendarDays, ListTodo, MoreHorizontal,
 } from "lucide-react";
 import { tasksStore, useTasks, type Priority, type Task, type TaskCategory } from "@/lib/tasks";
 import { listsStore, useLists, type UserList } from "@/lib/lists";
-import { allIntegrationItems, mockCalendarEvents, mockGoogleTasks, type IntegrationItem } from "@/lib/integrations";
+import { mockCalendarEvents, mockGoogleTasks, type IntegrationItem } from "@/lib/integrations";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { InteractiveDotGrid } from "@/components/InteractiveDotGrid";
 import { Calendar } from "@/components/ui/calendar";
 
 export const Route = createFileRoute("/")({ component: PulseTasks });
+
 
 // ============ Types & Parsing ============
 type Block = { time: string; task: string; priority: Priority };
