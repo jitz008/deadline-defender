@@ -494,10 +494,10 @@ function HomePage({
 
   return (
     <>
-      {/* Hero: Tasks 2.0 */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-[#121725]/60 p-10 text-center">
+      {/* Hero: Tasks 2.0 — feathered edges */}
+      <section className="feather-mask relative overflow-hidden p-10 text-center">
         <div className="mesh-bg" />
-        <div className="dot-grid" />
+        <InteractiveDotGrid baseOpacity={0.18} influence={160} />
         <div className="relative z-10">
           <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
             <span className="text-white">Tasks </span>
@@ -513,15 +513,14 @@ function HomePage({
         <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
       </div>
 
-
-      {/* Inline conversation — above the command bar */}
+      {/* Inline conversation — scrollable container so input bar stays sticky */}
       {messages.length > 0 && (
         <section className="slide-down mt-8 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
             <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
           </div>
-          <div className="space-y-5">
+          <div className="max-h-[55vh] space-y-5 overflow-y-auto pr-1">
             {messages.map((m, i) => m.role === "user"
               ? <UserBubble key={i} text={m.text} />
               : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
@@ -531,9 +530,9 @@ function HomePage({
         </section>
       )}
 
-      {/* AI command bar */}
-      <section className="mt-6">
-        <div className="rounded-2xl border border-white/8 bg-[#121725]/80 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+      {/* AI command bar — sticky so it stays pinned while content scrolls */}
+      <section className="sticky bottom-4 z-20 mt-6">
+        <div className="rounded-2xl border border-white/10 bg-[#0a0e17]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
               <Sparkles className="size-4 text-white" />
@@ -564,20 +563,21 @@ function HomePage({
         {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
       </section>
 
-
-      {/* Today's tasks */}
+      {/* Today's tasks — includes Google Calendar + Google Tasks items */}
       <section className="mt-10">
         <h2 className="mb-5 text-lg font-semibold text-white">Today's tasks</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
               tasks={tasks.filter((t) => t.priority === p && !t.done)}
+              integrations={allIntegrationItems().filter((i) => i.priority === p)}
               onInsight={(t) => ask(`Give me insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)}
               onToggle={onToggle} onStar={onStar}
             />
           ))}
         </div>
       </section>
+
 
       {/* Drag handle + Previous tasks */}
       <section className="mt-12">
