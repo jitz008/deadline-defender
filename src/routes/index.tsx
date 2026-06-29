@@ -495,10 +495,10 @@ function HomePage({
   return (
     <>
       {/* Hero: Tasks 2.0 */}
-      <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] p-14 text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,_rgba(59,130,246,0.22),_rgba(15,23,42,0.4)_60%,_transparent_100%)]" />
-        <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,_black_50%,_transparent_85%)]">
-          <InteractiveDotGrid baseOpacity={0.25} influence={160} />
+      <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] p-14 text-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,_rgba(59,130,246,0.26),_rgba(15,23,42,0.3)_55%,_transparent_100%)]" />
+        <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,_black_45%,_transparent_68%)]">
+          <InteractiveDotGrid baseOpacity={0.28} influence={160} />
         </div>
         <div className="relative z-10">
           <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
