@@ -290,9 +290,14 @@ function PulseTasks() {
   const quickActions = ["Break it down", "Rescue me", "Plan my day", "Habit check"];
 
   return (
-    <div className="min-h-screen pl-[52px]">
+    <div className="min-h-screen pl-[60px]">
       <div className="page-mesh" />
-      <Sidebar page={page} setPage={setPage} profile={profile} scorePop={scorePop} />
+      <Sidebar page={page} setPage={setPage} profile={profile} onAvatar={() => setShowProfile(true)} />
+
+      {/* Vertical PULSE AI label */}
+      <div className="pointer-events-none fixed right-3 top-1/2 z-20 -translate-y-1/2 select-none text-[10px] font-semibold tracking-[0.3em] text-white/30" style={{ writingMode: "vertical-rl" }}>
+        PULSE AI
+      </div>
 
       {/* Floating +2 */}
       {floats.map((f) => (
@@ -304,20 +309,23 @@ function PulseTasks() {
       {/* Top navbar */}
       <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b border-white/5 bg-[#0d0f14]/70 px-6 backdrop-blur-xl">
         <div className="flex items-center gap-2">
+          <div className="grid size-7 place-items-center rounded-full bg-[#4f8ef7]">
+            <Check className="size-4 text-white" strokeWidth={3} />
+          </div>
           <span className="text-sm font-semibold text-white">Pulse Tasks</span>
-          <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-white/70">2.0</span>
+          <span className="text-[11px] font-medium text-white/40">2.0</span>
         </div>
-        <div className="mx-auto flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3">
+        <div className="mx-auto flex h-9 w-full max-w-xl items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4">
           <Search className="size-4 text-white/40" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tasks..." className="h-full w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none" />
         </div>
-        <div className="ml-auto flex items-center gap-3">
-          <div className="flex items-center gap-2 text-xs text-white/60">
-            <span className={`block size-2 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400/60"}`} />
+        <div className="ml-auto flex items-center gap-2">
+          <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/70"}`}>
+            <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400"}`} />
             {aiActive ? "Gemini thinking" : "Gemini standby"}
           </div>
-          <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/60 hover:bg-white/5 hover:text-white" aria-label="History">
-            <Clock className="size-4" />
+          <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white" aria-label="History">
+            <Sparkles className="size-4" />
           </button>
           <button onClick={() => setShowProfile(true)} className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold transition hover:scale-105">{profile.initials}</button>
           <button className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></button>
@@ -325,8 +333,16 @@ function PulseTasks() {
       </header>
 
       <div className="border-b border-white/5 bg-white/[0.02] px-6 py-2 text-center text-xs text-white/60">
-        You are in guest mode. This is a live demo of Pulse Tasks 2.0. Sign in to save your real tasks.
+        You are in guest mode &mdash; this is a live demo of Pulse Tasks 2.0. Sign in with Google to save your real tasks.
       </div>
+
+      {/* Bottom score chip */}
+      <div className={`fixed bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0d0f14]/80 px-3 py-1.5 text-xs backdrop-blur-xl ${scorePop ? "score-pop" : ""}`}>
+        <Info className="size-3.5 text-white/40" />
+        <span className="font-semibold text-white">{profile.pulseScore}</span>
+        <ChevronUp className="size-3 text-white/40" />
+      </div>
+
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 py-8">
         {page === "home" && (
