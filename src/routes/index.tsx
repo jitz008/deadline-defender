@@ -494,13 +494,15 @@ function HomePage({
 
   return (
     <>
-      {/* Hero: Tasks 2.0 — framed card with dot grid */}
-      <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(ellipse_at_center,_rgba(30,58,138,0.35),_rgba(2,6,23,0.92)_72%)] p-12 text-center shadow-[0_10px_40px_-10px_rgba(0,0,0,0.6)]">
-        <InteractiveDotGrid baseOpacity={0.22} influence={160} />
-        <div className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,_black_55%,_transparent_100%)]" />
+      {/* Hero: Tasks 2.0 */}
+      <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] p-14 text-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,_rgba(59,130,246,0.22),_rgba(15,23,42,0.4)_60%,_transparent_100%)]" />
+        <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,_black_50%,_transparent_85%)]">
+          <InteractiveDotGrid baseOpacity={0.25} influence={160} />
+        </div>
         <div className="relative z-10">
           <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
-            <span className="text-white/90">Tasks </span>
+            <span className="text-white/95">Tasks </span>
             <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent">2.0</span>
           </h1>
           <p className="mt-3 text-sm text-white/45">Don't forget yours!</p>
