@@ -106,6 +106,12 @@ function timeGreeting(name: string) {
   return `${period}, ${name}`;
 }
 
+function Greeting({ name }: { name: string }) {
+  const [text, setText] = useState(`Hello, ${name}`);
+  useEffect(() => { setText(timeGreeting(name)); }, [name]);
+  return <span className="wave-text">{text}</span>;
+}
+
 // ============ Chat history ============
 type ChatMsg = { role: "user" | "ai"; text: string; parsed?: Parsed; ts: number };
 type ChatSession = { id: string; messages: ChatMsg[]; startedAt: number };
