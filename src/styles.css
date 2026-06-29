@@ -254,6 +254,37 @@
 }
 .greet-in { animation: greet-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* Per-word reveal */
+@keyframes greet-word {
+  0%   { opacity: 0; transform: translateY(20px); filter: blur(10px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.greet-word {
+  display: inline-block;
+  opacity: 0;
+  animation: greet-word 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Shimmering gradient sweep across greeting */
+@keyframes greet-sheen {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.greet-shimmer {
+  background: linear-gradient(90deg, #E8EAF0 0%, #E8EAF0 35%, #a78bfa 50%, #5B8DEF 60%, #E8EAF0 75%, #E8EAF0 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: greet-sheen 6s linear infinite;
+}
+
+@keyframes greet-sub-in {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 0.6; transform: translateY(0); }
+}
+.greet-sub { opacity: 0; animation: greet-sub-in 0.7s ease-out 0.6s forwards; }
+
 /* Page background mesh */
 @keyframes page-mesh-shift {
   0%, 100% { transform: translate3d(0,0,0); }
