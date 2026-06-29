@@ -106,6 +106,12 @@ function timeGreeting(name: string) {
   return `${period}, ${name}`;
 }
 
+function Greeting({ name }: { name: string }) {
+  const [text, setText] = useState(`Hello, ${name}`);
+  useEffect(() => { setText(timeGreeting(name)); }, [name]);
+  return <span className="wave-text">{text}</span>;
+}
+
 // ============ Chat history ============
 type ChatMsg = { role: "user" | "ai"; text: string; parsed?: Parsed; ts: number };
 type ChatSession = { id: string; messages: ChatMsg[]; startedAt: number };
@@ -509,7 +515,7 @@ function HomePage({
 
       {/* Greeting — below hero */}
       <div key={profile.name} className="greet-in mt-8">
-        <div className="text-3xl font-semibold tracking-tight text-white md:text-4xl"><span className="wave-text">{timeGreeting(profile.name)}</span></div>
+        <div className="text-3xl font-semibold tracking-tight text-white md:text-4xl"><Greeting name={profile.name} /></div>
         <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
       </div>
 
@@ -532,7 +538,7 @@ function HomePage({
 
       {/* AI command bar — sticky so it stays pinned while content scrolls */}
       <section className="sticky bottom-4 z-20 mt-6">
-        <div className="rounded-2xl border border-white/15 bg-[#121725]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
+        <div className="rgy-border rounded-2xl bg-[#121725]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
               <Sparkles className="size-4 text-white" />
