@@ -629,7 +629,7 @@ function HomePage({
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
               tasks={tasks.filter((t) => t.priority === p && !t.done && !t.listId)}
-              integrations={allIntegrationItems().filter((i) => i.priority === p)}
+              integrations={[]}
               onInsight={(t) => ask(`Give me insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)}
               onToggle={onToggle} onStar={onStar}
             />
