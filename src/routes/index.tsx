@@ -138,43 +138,27 @@ const navItems: { key: Page; icon: typeof Home; label: string; badge?: string }[
   { key: "previous", icon: History, label: "Previous Tasks" },
 ];
 
-function Sidebar({ page, setPage, profile, scorePop }: { page: Page; setPage: (p: Page) => void; profile: Profile; scorePop: boolean }) {
+function Sidebar({ page, setPage, profile, onAvatar }: { page: Page; setPage: (p: Page) => void; profile: Profile; onAvatar: () => void }) {
   return (
-    <aside className="group fixed left-0 top-0 z-30 flex h-screen w-[52px] flex-col justify-between border-r border-white/5 bg-white/[0.02] py-4 backdrop-blur-xl transition-[width] duration-300 hover:w-[220px]">
-      <div className="flex flex-col gap-1 px-2">
-        <div className="mb-4 flex h-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] text-sm font-bold text-white">P</div>
+    <aside className="fixed left-0 top-0 z-30 flex h-screen w-[60px] flex-col justify-between border-r border-white/5 bg-white/[0.02] py-4 backdrop-blur-xl">
+      <div className="flex flex-col items-center gap-1 px-2">
         {navItems.map((it) => {
           const active = page === it.key;
           return (
             <button
               key={it.key}
               onClick={() => setPage(it.key)}
-              className={`relative flex h-10 items-center gap-3 rounded-lg px-2 text-sm transition-all duration-200 ${active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5 hover:text-white"}`}
+              title={it.label}
+              className={`relative grid size-10 place-items-center rounded-xl transition-all duration-200 ${active ? "bg-[#4f8ef7]/15 text-[#7dafff]" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
             >
-              {active && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-[#4f8ef7] to-[#a78bfa]" />}
-              <it.icon className="size-5 shrink-0" />
-              <span className="hidden truncate group-hover:inline">{it.label}</span>
-              {it.badge && (
-                <span className="ml-auto hidden rounded-md bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] px-1.5 py-0.5 text-[10px] font-semibold text-white group-hover:inline">
-                  {it.badge}
-                </span>
-              )}
+              {active && <span className="absolute left-[-10px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#4f8ef7]" />}
+              <it.icon className="size-5" strokeWidth={1.75} />
             </button>
           );
         })}
       </div>
-      <div className="flex flex-col gap-2 px-2">
-        <div className="flex items-center gap-2 rounded-lg p-1.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold text-white">{profile.initials}</div>
-          <div className="hidden min-w-0 group-hover:block">
-            <div className="truncate text-sm text-white/90">{profile.name}</div>
-            <div className="truncate text-[10px] font-semibold uppercase tracking-wider text-white/40">{profile.title}</div>
-          </div>
-        </div>
-        <div className="hidden items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs group-hover:flex">
-          <span className="text-white/60">Pulse</span>
-          <span className={`font-semibold text-emerald-300 ${scorePop ? "score-pop" : ""}`}>{profile.pulseScore}</span>
-        </div>
+      <div className="flex flex-col items-center gap-2 px-2">
+        <button onClick={onAvatar} title={profile.name} className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold text-white transition hover:scale-105">{profile.initials}</button>
       </div>
     </aside>
   );
