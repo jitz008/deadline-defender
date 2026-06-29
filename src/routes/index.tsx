@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Star, ListChecks, CalendarClock, Activity, History,
-  Search, Sparkles, Mic, ArrowUp, X, Lightbulb, Plus, Check,
-  LogOut, Clock, Trash2, User as UserIcon, ChevronRight, ChevronUp, Info,
+  Sparkles, Mic, X, Lightbulb, Plus, Check,
+  LogOut, Clock, Trash2, User as UserIcon, ChevronUp, Info,
+  PanelLeftClose, PanelLeftOpen, Inbox, Trophy, FolderKanban, Zap,
 } from "lucide-react";
 import { tasksStore, useTasks, type Priority, type Task } from "@/lib/tasks";
 
@@ -49,18 +50,17 @@ function parseAiText(raw: string): Parsed {
       const m = line.match(/SUGGEST_TASK:\s*([^|]+)(?:\|\s*PRIORITY:\s*(\w+))?(?:\|\s*TIME:\s*(.+))?/i);
       if (m) out.suggestions.push({ title: m[1].trim(), priority: (m[2]?.toLowerCase() as Priority) || "medium", time: m[3]?.trim() });
     } else if (line.startsWith("QUICK_OPTIONS:")) {
-      try { out.quickOptions = JSON.parse(line.replace(/^QUICK_OPTIONS:\s*/i, "")); } catch {}
+      try { out.quickOptions = JSON.parse(line.replace(/^QUICK_OPTIONS:\s*/i, "")); } catch { /* ignore */ }
     } else if (line.startsWith("FOLLOW_UPS:")) {
-      try { out.followUps = JSON.parse(line.replace(/^FOLLOW_UPS:\s*/i, "")); } catch {}
+      try { out.followUps = JSON.parse(line.replace(/^FOLLOW_UPS:\s*/i, "")); } catch { /* ignore */ }
     } else {
       introLines.push(line);
     }
   }
-  out.intro = introLines.join(" ").trim();
+  out.intro = introLines.join("\n").trim();
   return out;
 }
 
-// Render text with inline teal time pills
 const TIME_RE = /\b(\d{1,2}(:\d{2})?\s*(am|pm|AM|PM)|today|tomorrow|tonight|this (morning|afternoon|evening)|tomorrow (morning|afternoon|evening)|next (monday|tuesday|wednesday|thursday|friday|saturday|sunday|week))\b/gi;
 function withTimePills(text: string) {
   const parts: (string | { pill: string })[] = [];
@@ -89,15 +89,15 @@ const DEFAULT_PROFILE: Profile = {
 const PROFILE_KEY = "pulse:profile:v1";
 function loadProfile(): Profile {
   if (typeof window === "undefined") return DEFAULT_PROFILE;
-  try { const raw = localStorage.getItem(PROFILE_KEY); if (raw) return { ...DEFAULT_PROFILE, ...JSON.parse(raw) }; } catch {}
+  try { const raw = localStorage.getItem(PROFILE_KEY); if (raw) return { ...DEFAULT_PROFILE, ...JSON.parse(raw) }; } catch { /* ignore */ }
   return DEFAULT_PROFILE;
 }
-function saveProfile(p: Profile) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch {} }
+function saveProfile(p: Profile) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch { /* ignore */ } }
 
 function timeGreeting(name: string) {
   const h = new Date().getHours();
   const period = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  return `${period}, ${name}.`;
+  return `${period}, ${name}`;
 }
 
 // ============ Chat history ============
@@ -108,40 +108,55 @@ function loadSessions(): ChatSession[] {
   if (typeof window === "undefined") return [];
   try { return JSON.parse(localStorage.getItem(CHAT_KEY) || "[]"); } catch { return []; }
 }
-function saveSessions(s: ChatSession[]) { try { localStorage.setItem(CHAT_KEY, JSON.stringify(s)); } catch {} }
-
-// ============ Typewriter ============
-function useTypewriter(full: string, speed = 22) {
-  const [out, setOut] = useState("");
-  useEffect(() => {
-    setOut("");
-    if (!full) return;
-    let i = 0;
-    const t = setInterval(() => {
-      i++;
-      setOut(full.slice(0, i));
-      if (i >= full.length) clearInterval(t);
-    }, speed);
-    return () => clearInterval(t);
-  }, [full, speed]);
-  return out;
-}
+function saveSessions(s: ChatSession[]) { try { localStorage.setItem(CHAT_KEY, JSON.stringify(s)); } catch { /* ignore */ } }
 
 // ============ Sidebar ============
 type Page = "home" | "starred" | "lists" | "plan" | "habits" | "previous";
 const navItems: { key: Page; icon: typeof Home; label: string; badge?: string }[] = [
   { key: "home", icon: Home, label: "Home" },
   { key: "starred", icon: Star, label: "Starred" },
-  { key: "lists", icon: ListChecks, label: "All Lists" },
-  { key: "plan", icon: CalendarClock, label: "Today's Plan", badge: "AI" },
-  { key: "habits", icon: Activity, label: "Habit Tracker" },
-  { key: "previous", icon: History, label: "Previous Tasks" },
+  { key: "lists", icon: ListChecks, label: "All lists" },
+  { key: "plan", icon: CalendarClock, label: "Today's plan", badge: "AI" },
+  { key: "habits", icon: Activity, label: "Habit tracker" },
 ];
 
-function Sidebar({ page, setPage, profile, onAvatar }: { page: Page; setPage: (p: Page) => void; profile: Profile; onAvatar: () => void }) {
+const myLists = [
+  { name: "My Tasks", icon: Inbox },
+  { name: "Hackathon Tasks", icon: Trophy },
+  { name: "Personal Inbox", icon: FolderKanban },
+];
+
+function Sidebar({
+  page, setPage, profile, onAvatar, pinned, setPinned, hovered, setHovered,
+}: {
+  page: Page; setPage: (p: Page) => void; profile: Profile; onAvatar: () => void;
+  pinned: boolean; setPinned: (b: boolean) => void;
+  hovered: boolean; setHovered: (b: boolean) => void;
+}) {
+  const expanded = pinned || hovered;
   return (
-    <aside className="fixed left-0 top-0 z-30 flex h-screen w-[60px] flex-col justify-between border-r border-white/5 bg-white/[0.02] py-4 backdrop-blur-xl">
-      <div className="flex flex-col items-center gap-1 px-2">
+    <aside
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="fixed left-0 top-0 z-30 flex h-screen flex-col justify-between border-r border-white/5 bg-[#0d1119]/95 py-4 backdrop-blur-xl transition-[width] duration-200 ease-out"
+      style={{ width: expanded ? 250 : 64 }}
+    >
+      <div className="flex flex-col gap-1 px-3">
+        {/* Brand row + pin */}
+        <div className="mb-2 flex items-center justify-between px-1">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6]">
+              <Check className="size-4 text-white" strokeWidth={3} />
+            </div>
+            {expanded && <span className="whitespace-nowrap text-sm font-semibold text-white">Pulse Tasks</span>}
+          </div>
+          {expanded && (
+            <button onClick={() => setPinned(!pinned)} title={pinned ? "Unpin" : "Pin open"} className="grid size-7 shrink-0 place-items-center rounded-md text-white/40 hover:bg-white/5 hover:text-white">
+              {pinned ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+            </button>
+          )}
+        </div>
+
         {navItems.map((it) => {
           const active = page === it.key;
           return (
@@ -149,16 +164,69 @@ function Sidebar({ page, setPage, profile, onAvatar }: { page: Page; setPage: (p
               key={it.key}
               onClick={() => setPage(it.key)}
               title={it.label}
-              className={`relative grid size-10 place-items-center rounded-xl transition-all duration-200 ${active ? "bg-[#4f8ef7]/15 text-[#7dafff]" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
+              className={`group/btn relative flex h-10 items-center gap-3 rounded-xl px-2.5 text-sm transition-all duration-150 ${active ? "bg-[#5B8DEF]/15 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"}`}
             >
-              {active && <span className="absolute left-[-10px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#4f8ef7]" />}
-              <it.icon className="size-5" strokeWidth={1.75} />
+              {active && <span className="absolute left-[-12px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#5B8DEF]" />}
+              <it.icon className="size-5 shrink-0" strokeWidth={1.75} />
+              {expanded && (
+                <>
+                  <span className="flex-1 truncate text-left">{it.label}</span>
+                  {it.badge && <span className="rounded bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{it.badge}</span>}
+                </>
+              )}
             </button>
           );
         })}
+
+        <div className="my-2 h-px bg-white/5" />
+
+        <button
+          onClick={() => setPage("previous")}
+          title="Previous tasks"
+          className={`flex h-10 items-center gap-3 rounded-xl px-2.5 text-sm transition ${page === "previous" ? "bg-[#5B8DEF]/15 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"}`}
+        >
+          <History className="size-5 shrink-0" strokeWidth={1.75} />
+          {expanded && <span className="truncate">Previous tasks</span>}
+        </button>
+
+        {expanded && (
+          <div className="mt-4">
+            <div className="px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">My lists</div>
+            <div className="flex flex-col gap-0.5">
+              {myLists.map((l) => (
+                <button key={l.name} className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/65 transition hover:bg-white/5 hover:text-white">
+                  <l.icon className="size-4 shrink-0 text-white/40" strokeWidth={1.75} />
+                  <span className="truncate">{l.name}</span>
+                </button>
+              ))}
+              <button className="flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm text-white/40 transition hover:bg-white/5 hover:text-white">
+                <Plus className="size-4 shrink-0" />
+                <span>Create new list</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="flex flex-col items-center gap-2 px-2">
-        <button onClick={onAvatar} title={profile.name} className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold text-white transition hover:scale-105">{profile.initials}</button>
+
+      {/* Bottom user card */}
+      <div className="px-3">
+        <button
+          onClick={onAvatar}
+          className="flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-2 text-left transition hover:border-white/15 hover:bg-white/[0.06]"
+        >
+          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] text-xs font-bold text-white">{profile.initials}</div>
+          {expanded && (
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold text-white">{profile.name}</div>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-300/90">Chief of Staff</span>
+              </div>
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] text-white/55">
+                <Zap className="size-3 text-amber-300" /> Pulse: <span className="font-semibold text-white">{profile.pulseScore}</span>
+              </div>
+            </div>
+          )}
+        </button>
       </div>
     </aside>
   );
@@ -176,26 +244,17 @@ function PulseTasks() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [search, setSearch] = useState("");
   const [scorePop, setScorePop] = useState(false);
   const [floats, setFloats] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [listening, setListening] = useState(false);
 
   useEffect(() => {
     tasksStore.hydrate();
     setProfile(loadProfile());
     setSessions(loadSessions());
   }, []);
-
-  // greeting message
-  useEffect(() => {
-    if (messages.length === 0 && profile.name) {
-      const open = tasksStore.get().filter((t) => !t.done);
-      const urgent = open.find((t) => t.priority === "high");
-      const greet = `${timeGreeting(profile.name)} You have ${open.length} open tasks${urgent ? `, most urgent: ${urgent.title}${urgent.due ? ` at ${urgent.due}` : ""}` : ""}. How can I help you crush today?`;
-      setMessages([{ role: "ai", text: greet, ts: Date.now() }]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile.name]);
 
   const counts = useMemo(() => {
     const open = tasks.filter((t) => !t.done).length;
@@ -245,14 +304,12 @@ function PulseTasks() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "AI error");
       const parsed = parseAiText(data.text);
-      // Auto-add captured tasks
       for (const s of parsed.suggestions) {
         tasksStore.add({ title: s.title, priority: s.priority, due: s.time });
       }
       const aiMsg: ChatMsg = { role: "ai", text: data.text, parsed, ts: Date.now() };
       const finalMsgs = [...next, aiMsg];
       setMessages(finalMsgs);
-      // persist session
       const sid = sessions[0]?.id && Date.now() - (sessions[0]?.startedAt || 0) < 3600_000
         ? sessions[0].id
         : "s-" + Date.now();
@@ -267,9 +324,19 @@ function PulseTasks() {
     }
   }
 
-  function submit() {
-    const v = input.trim(); if (!v) return;
+  function submit(text?: string) {
+    const v = (text ?? input).trim(); if (!v) return;
     setInput(""); ask(v);
+  }
+
+  // Voice with silence detection + auto-send
+  const recogRef = useRef<any>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function stopListening() {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    try { recogRef.current?.stop(); } catch { /* ignore */ }
+    setListening(false);
   }
 
   function startMic() {
@@ -277,80 +344,91 @@ function PulseTasks() {
     const SR = W.SpeechRecognition || W.webkitSpeechRecognition;
     if (!SR) { setError("Voice input not supported in this browser"); return; }
     const r = new SR();
-    r.lang = "en-US"; r.interimResults = false;
-    r.onresult = (e: any) => setInput(e.results[0][0].transcript);
-    r.onerror = () => setError("Mic error");
+    recogRef.current = r;
+    r.lang = "en-US"; r.interimResults = true; r.continuous = true;
+    let buffer = "";
+    const resetSilence = () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(() => {
+        try { r.stop(); } catch { /* ignore */ }
+      }, 2000);
+    };
+    r.onresult = (e: any) => {
+      let finalText = "";
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const tr = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += tr; else interim += tr;
+      }
+      if (finalText) buffer += finalText;
+      setInput((buffer + interim).trim());
+      resetSilence();
+    };
+    r.onerror = () => { setError("Mic error"); stopListening(); };
+    r.onend = () => {
+      setListening(false);
+      if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+      const finalText = buffer.trim();
+      if (finalText) {
+        setInput("");
+        ask(finalText);
+      }
+    };
+    setListening(true);
+    setError(null);
     r.start();
+    resetSilence();
   }
 
-  function clearChat() {
-    setMessages([]);
-  }
+  function clearChat() { setMessages([]); }
 
   const quickActions = ["Break it down", "Rescue me", "Plan my day", "Habit check"];
+  const expanded = sidebarPinned || sidebarHovered;
 
   return (
-    <div className="min-h-screen pl-[60px]">
+    <div className="min-h-screen transition-[padding] duration-200 ease-out" style={{ paddingLeft: expanded ? 250 : 64 }}>
       <div className="page-mesh" />
-      <Sidebar page={page} setPage={setPage} profile={profile} onAvatar={() => setShowProfile(true)} />
-
-      {/* Vertical PULSE AI label */}
-      <div className="pointer-events-none fixed right-3 top-1/2 z-20 -translate-y-1/2 select-none text-[10px] font-semibold tracking-[0.3em] text-white/30" style={{ writingMode: "vertical-rl" }}>
-        PULSE AI
-      </div>
+      <Sidebar
+        page={page} setPage={setPage} profile={profile}
+        onAvatar={() => setShowProfile(true)}
+        pinned={sidebarPinned} setPinned={setSidebarPinned}
+        hovered={sidebarHovered} setHovered={setSidebarHovered}
+      />
 
       {/* Floating +2 */}
       {floats.map((f) => (
-        <div key={f.id} className="pointer-events-none fixed z-50 float-up text-sm font-bold text-emerald-300" style={{ left: f.x, top: f.y }}>
-          +2
-        </div>
+        <div key={f.id} className="pointer-events-none fixed z-50 float-up text-sm font-bold text-emerald-300" style={{ left: f.x, top: f.y }}>+2</div>
       ))}
 
-      {/* Top navbar */}
-      <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b border-white/5 bg-[#0d0f14]/70 px-6 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <div className="grid size-7 place-items-center rounded-full bg-[#4f8ef7]">
-            <Check className="size-4 text-white" strokeWidth={3} />
-          </div>
-          <span className="text-sm font-semibold text-white">Pulse Tasks</span>
-          <span className="text-[11px] font-medium text-white/40">2.0</span>
+      {/* Top mini bar */}
+      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-[#0A0E17]/80 px-6 backdrop-blur-xl">
+        <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
+          <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400/70"}`} />
+          {aiActive ? "Gemini thinking" : "Gemini standby"}
         </div>
-        <div className="mx-auto flex h-9 w-full max-w-xl items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4">
-          <Search className="size-4 text-white/40" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tasks..." className="h-full w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none" />
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/70"}`}>
-            <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400"}`} />
-            {aiActive ? "Gemini thinking" : "Gemini standby"}
-          </div>
-          <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white" aria-label="History">
-            <Sparkles className="size-4" />
-          </button>
-          <button onClick={() => setShowProfile(true)} className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold transition hover:scale-105">{profile.initials}</button>
-          <button className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></button>
-        </div>
+        <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white" aria-label="History">
+          <History className="size-4" />
+        </button>
+        <button className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></button>
       </header>
 
-      <div className="border-b border-white/5 bg-white/[0.02] px-6 py-2 text-center text-xs text-white/60">
-        You are in guest mode &mdash; this is a live demo of Pulse Tasks 2.0. Sign in with Google to save your real tasks.
-      </div>
-
-      {/* Bottom score chip */}
+      {/* Pulse score chip */}
       <div className={`fixed bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0d0f14]/80 px-3 py-1.5 text-xs backdrop-blur-xl ${scorePop ? "score-pop" : ""}`}>
         <Info className="size-3.5 text-white/40" />
         <span className="font-semibold text-white">{profile.pulseScore}</span>
         <ChevronUp className="size-3 text-white/40" />
       </div>
 
-
-      <main className="relative z-10 mx-auto max-w-6xl px-6 py-8">
+      <main className="relative z-10 mx-auto max-w-5xl px-8 py-10">
         {page === "home" && (
           <HomePage
-            tasks={tasks} counts={counts} input={input} setInput={setInput}
-            aiActive={aiActive} ask={ask} submit={submit} startMic={startMic}
+            tasks={tasks} counts={counts} profile={profile}
+            input={input} setInput={setInput}
+            aiActive={aiActive} ask={ask} submit={submit}
+            startMic={startMic} stopMic={stopListening} listening={listening}
             quickActions={quickActions} messages={messages} clearChat={clearChat}
-            error={error} search={search} onToggle={toggleTask}
+            error={error}
+            onToggle={toggleTask}
             onStar={(id) => { const t = tasks.find((x) => x.id === id); tasksStore.update(id, { starred: !t?.starred }); }}
           />
         )}
@@ -368,12 +446,16 @@ function PulseTasks() {
 }
 
 // ============ Home Page ============
-function HomePage({ tasks, counts, input, setInput, aiActive, ask, submit, startMic, quickActions, messages, clearChat, error, search, onToggle, onStar }: {
-  tasks: Task[]; counts: { open: number; todayDone: number };
+function HomePage({
+  tasks, profile, input, setInput, aiActive, ask, submit, startMic, stopMic, listening,
+  quickActions, messages, clearChat, error, onToggle, onStar,
+}: {
+  tasks: Task[]; counts: { open: number; todayDone: number }; profile: Profile;
   input: string; setInput: (s: string) => void; aiActive: boolean;
-  ask: (m: string) => void; submit: () => void; startMic: () => void;
+  ask: (m: string) => void; submit: (text?: string) => void;
+  startMic: () => void; stopMic: () => void; listening: boolean;
   quickActions: string[]; messages: ChatMsg[]; clearChat: () => void;
-  error: string | null; search: string;
+  error: string | null;
   onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void;
 }) {
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -381,77 +463,81 @@ function HomePage({ tasks, counts, input, setInput, aiActive, ask, submit, start
 
   return (
     <>
-      <section className="glass-panel relative overflow-hidden p-12 text-center">
-        <div className="mesh-bg" />
-        <div className="dot-grid" />
-        <div className="relative z-10">
-          <h1 className="text-6xl font-semibold tracking-tight md:text-7xl">
-            <span className="text-white">Tasks </span>
-            <span className="gradient-text">2.0</span>
-          </h1>
-          <p className="mt-3 text-base text-white/50">Don't forget yours.</p>
-        </div>
+      {/* Greeting */}
+      <section>
+        <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">{timeGreeting(profile.name)}</h1>
+        <p className="mt-2 text-base text-white/45">Here's your day at a glance.</p>
       </section>
 
-      {/* AI input bar */}
-      <section className="mt-6">
-        <div className="glass-panel breath-glow flex items-center gap-3 p-3">
-          <div className={`grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#4f8ef7] to-[#6366f1] shadow-lg shadow-[#4f8ef7]/30 ${aiActive ? "animate-pulse" : ""}`}>
-            <Sparkles className={`size-5 text-white ${aiActive ? "animate-spin" : ""}`} />
-          </div>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-            placeholder="Try: I have a meeting at 3 and a dinner at 8, plan my day"
-            className="h-10 w-full bg-transparent text-[15px] text-white placeholder:text-white/35 focus:outline-none"
-          />
-          <button onClick={submit} disabled={!input.trim() || aiActive} className="hidden size-9 place-items-center rounded-lg bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] text-white transition hover:-translate-y-px disabled:opacity-40 md:grid" aria-label="Send"><ArrowUp className="size-4" /></button>
-          <button onClick={startMic} className="grid size-10 shrink-0 place-items-center rounded-xl border border-[#4f8ef7]/30 bg-[#4f8ef7]/10 text-[#7dafff] transition hover:bg-[#4f8ef7]/20" aria-label="Voice"><Mic className="size-4" /></button>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {quickActions.map((q) => (
-            <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/8 bg-white/[0.03] px-3.5 py-1.5 text-xs text-white/70 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.07] hover:text-white">
-              <span className="text-white/40">/</span> {q}
+      {/* AI command bar */}
+      <section className="mt-8">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/80 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
+              <Sparkles className="size-4 text-white" />
+            </div>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+              placeholder="Ask anything or add a task..."
+              className="h-9 w-full bg-transparent text-[15px] text-white placeholder:text-white/40 focus:outline-none"
+            />
+            <button
+              onClick={listening ? stopMic : startMic}
+              className={`relative grid size-9 shrink-0 place-items-center rounded-full transition ${listening ? "mic-ring bg-[#5B8DEF] text-white" : "border border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white"}`}
+              aria-label="Voice"
+            >
+              <Mic className="size-4" />
             </button>
-          ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 px-1">
+            {quickActions.map((q) => (
+              <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/8 bg-white/[0.02] px-3 py-1 text-xs text-white/65 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.06] hover:text-white">
+                <span className="text-white/35">/</span> {q}
+              </button>
+            ))}
+          </div>
         </div>
         {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
       </section>
 
-
-      {/* Inline chat area */}
+      {/* Inline conversation — pushes content down */}
       {messages.length > 0 && (
-        <section className="slide-down mt-4 glass-panel p-5">
+        <section className="slide-down mt-6 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
           <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#a78bfa]" /><span className="text-sm font-semibold text-white">Gemini</span></div>
-            <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear chat</button>
+            <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
+            <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
           </div>
-          <div className="max-h-[480px] space-y-4 overflow-y-auto pr-2">
+          <div className="space-y-5">
             {messages.map((m, i) => m.role === "user"
               ? <UserBubble key={i} text={m.text} />
-              : <AiBubble key={i} msg={m} isLatest={i === messages.length - 1} onFollowUp={ask} onOption={ask} />
+              : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
             )}
             <div ref={chatEndRef} />
           </div>
         </section>
       )}
 
-      {/* Tasks board */}
+      {/* Today's tasks */}
       <section className="mt-10">
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold text-white">Today's tasks</h2>
-        </div>
-
+        <h2 className="mb-5 text-lg font-semibold text-white">Today's tasks</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
-              tasks={tasks.filter((t) => t.priority === p && matchSearch(t, search))}
-              onInsight={(t) => ask(`Give me insights on this task: "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)}
+              tasks={tasks.filter((t) => t.priority === p && !t.done)}
+              onInsight={(t) => ask(`Give me insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)}
               onToggle={onToggle} onStar={onStar}
             />
           ))}
         </div>
+      </section>
+
+      {/* Drag handle + Previous tasks */}
+      <section className="mt-12">
+        <div className="mx-auto mb-6 h-1 w-12 rounded-full bg-white/10" />
+        <h2 className="mb-5 text-lg font-semibold text-white">Previous tasks</h2>
+        <PreviousList tasks={tasks} />
       </section>
     </>
   );
@@ -460,36 +546,41 @@ function HomePage({ tasks, counts, input, setInput, aiActive, ask, submit, start
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-[#4f8ef7]/20 border border-[#4f8ef7]/30 px-4 py-2 text-sm text-white">{withTimePills(text)}</div>
+      <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-4 py-2 text-sm font-medium text-white shadow-md shadow-[#5B8DEF]/20">{withTimePills(text)}</div>
     </div>
   );
 }
 
-function AiBubble({ msg, isLatest, onFollowUp, onOption }: { msg: ChatMsg; isLatest: boolean; onFollowUp: (q: string) => void; onOption: (q: string) => void }) {
-  const intro = msg.parsed?.intro || (msg.parsed ? "" : msg.text);
-  const typed = useTypewriter(isLatest ? intro : "", 18);
-  const display = isLatest ? typed : intro;
+function AiBubble({ msg, onFollowUp, onOption }: { msg: ChatMsg; onFollowUp: (q: string) => void; onOption: (q: string) => void }) {
   const p = msg.parsed;
+  const intro = p?.intro || (p ? "" : msg.text);
+  const introLines = intro.split("\n").map((l) => l.trim()).filter(Boolean);
 
   return (
-    <div className="flex gap-2">
-      <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa]"><Sparkles className="size-3.5 text-white" /></div>
+    <div className="flex gap-3">
+      <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6]"><Sparkles className="size-3.5 text-white" /></div>
       <div className="min-w-0 flex-1 space-y-3">
-        {display && <div className="text-[15px] leading-relaxed text-white/90">{withTimePills(display)}</div>}
+        {introLines.length > 0 && (
+          <div className="space-y-1.5">
+            {introLines.map((line, i) => (
+              <div key={i} className="text-[15px] leading-relaxed text-white/90">{withTimePills(line)}</div>
+            ))}
+          </div>
+        )}
 
         {p?.now && (
-          <div className="rounded-xl border border-[#4f8ef7]/30 bg-[#4f8ef7]/10 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-[#a78bfa]">Do this now</div>
+          <div className="rounded-xl border border-[#5B8DEF]/30 bg-[#5B8DEF]/10 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8B5CF6]">Do this now</div>
             <div className="mt-1 text-sm font-semibold text-white">{withTimePills(p.now)}</div>
           </div>
         )}
 
         {p && p.blocks.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Today's plan</div>
             {p.blocks.map((b, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
-                <span className={`size-2 rounded-full ${dotColor(b.priority)}`} />
+                <span className={`size-2 rounded-full dot-${b.priority}`} />
                 <span className="time-pill"><Clock className="size-3" />{b.time}</span>
                 <span className="flex-1 text-sm text-white">{b.task}</span>
               </div>
@@ -503,7 +594,7 @@ function AiBubble({ msg, isLatest, onFollowUp, onOption }: { msg: ChatMsg; isLat
             {p.subtasks.map((s, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
                 <span className="text-sm text-white/90">{s}</span>
-                <button onClick={() => { tasksStore.add({ title: s, priority: "medium" }); }} className="flex items-center gap-1 text-xs text-[#4f8ef7] hover:text-white"><Plus className="size-3" /> Add</button>
+                <button onClick={() => { tasksStore.add({ title: s, priority: "medium" }); }} className="flex items-center gap-1 text-xs text-[#5B8DEF] hover:text-white"><Plus className="size-3" /> Add</button>
               </div>
             ))}
           </div>
@@ -512,21 +603,7 @@ function AiBubble({ msg, isLatest, onFollowUp, onOption }: { msg: ChatMsg; isLat
         {p && p.insights.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {p.insights.map((s, i) => (
-              <div key={i} className="rounded-full border border-[#a78bfa]/30 bg-[#a78bfa]/10 px-3 py-1.5 text-xs text-white/90">{s}</div>
-            ))}
-          </div>
-        )}
-
-        {p && p.habits.length > 0 && (
-          <div className="space-y-1.5">
-            {p.habits.map((h, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
-                <span className="text-white">{h.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs ${h.status.includes("on") ? "text-emerald-300" : h.status.includes("risk") ? "text-amber-300" : "text-red-300"}`}>{h.status}</span>
-                  <span className="text-xs text-white/50">{h.note}</span>
-                </div>
-              </div>
+              <div key={i} className="rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-3 py-1.5 text-xs text-white/90">{s}</div>
             ))}
           </div>
         )}
@@ -537,7 +614,7 @@ function AiBubble({ msg, isLatest, onFollowUp, onOption }: { msg: ChatMsg; isLat
             {p.suggestions.map((s, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <span className={`size-2 rounded-full ${dotColor(s.priority)}`} />
+                  <span className={`size-2 rounded-full dot-${s.priority}`} />
                   <span className="text-sm text-white">{s.title}</span>
                   {s.time && <span className="time-pill"><Clock className="size-3" />{s.time}</span>}
                 </div>
@@ -550,30 +627,21 @@ function AiBubble({ msg, isLatest, onFollowUp, onOption }: { msg: ChatMsg; isLat
         {p && p.quickOptions.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1">
             {p.quickOptions.map((q, i) => (
-              <button key={i} onClick={() => onOption(q)} className="rounded-lg border border-[#4f8ef7]/30 bg-[#4f8ef7]/10 px-3 py-1.5 text-xs text-white transition hover:-translate-y-px hover:bg-[#4f8ef7]/20">{q}</button>
+              <button key={i} onClick={() => onOption(q)} className="rounded-lg border border-[#5B8DEF]/30 bg-[#5B8DEF]/10 px-3 py-1.5 text-xs text-white transition hover:-translate-y-px hover:bg-[#5B8DEF]/20">{q}</button>
             ))}
           </div>
         )}
 
         {p && p.followUps.length > 0 && (
-          <div className="flex flex-wrap gap-2 border-t border-white/5 pt-3">
+          <div className="flex flex-wrap gap-2 pt-1">
             {p.followUps.map((q, i) => (
-              <button key={i} onClick={() => onFollowUp(q)} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 transition hover:-translate-y-px hover:border-[#4f8ef7]/40 hover:bg-[#4f8ef7]/10 hover:text-white">{q}</button>
+              <button key={i} onClick={() => onFollowUp(q)} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 transition hover:-translate-y-px hover:border-[#5B8DEF]/40 hover:bg-[#5B8DEF]/10 hover:text-white">{q}</button>
             ))}
           </div>
         )}
       </div>
     </div>
   );
-}
-
-function dotColor(p: Priority) {
-  return p === "high" ? "bg-red-400" : p === "low" ? "bg-emerald-400" : "bg-amber-400";
-}
-
-function matchSearch(t: Task, q: string) {
-  if (!q.trim()) return true;
-  return t.title.toLowerCase().includes(q.toLowerCase());
 }
 
 // ============ Column ============
@@ -586,10 +654,11 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
   const colClass = priority === "high" ? "col-high" : priority === "low" ? "col-low" : "col-medium";
 
   return (
-    <div className={`${colClass} rounded-2xl p-4 backdrop-blur-md`}>
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-medium text-white/90">{title}</span>
-        <span className={`size-2 rounded-full ${dotColor(priority)}`} />
+    <div className={`${colClass} rounded-2xl p-4`}>
+      <div className="mb-4 flex items-center gap-2 px-1">
+        <span className={`size-2 rounded-full dot-${priority}`} />
+        <span className="text-[13px] font-medium text-white/85">{title}</span>
+        <span className="ml-auto text-[11px] text-white/35">{tasks.length}</span>
       </div>
       <div className="space-y-2">
         {tasks.map((t) => <TaskRow key={t.id} task={t} onInsight={() => onInsight(t)} onToggle={onToggle} onStar={onStar} />)}
@@ -599,61 +668,49 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
           <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} onBlur={() => { if (!val.trim()) setAdding(false); }} placeholder="New task..." className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
         </form>
       ) : (
-        <button onClick={() => setAdding(true)} className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/40 transition hover:bg-white/5 hover:text-white"><Plus className="size-4" /> Add Task</button>
+        <button onClick={() => setAdding(true)} className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/40 transition hover:bg-white/5 hover:text-white"><Plus className="size-4" /> Add Task</button>
       )}
     </div>
   );
 }
 
 function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight: () => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  // Demo: deterministic 0/5 or 2/5 based on priority
-  const totalSteps = 5;
-  const doneSteps = task.priority === "high" && task.title.toLowerCase().includes("pitch") ? 2 : 0;
+  const timeMatch = task.due?.match(/\d{1,2}(:\d{2})?\s*(am|pm)/i);
+  const shortTime = timeMatch ? timeMatch[0] : task.due;
   return (
-    <div className="fade-in rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-white/15 hover:bg-white/[0.05]">
-      <div className="flex items-start gap-3">
-        <button onClick={(e) => onToggle(task.id, e)} className={`mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition ${task.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/25 hover:border-white"}`} aria-label="Toggle">
-          {task.done && <Check className="size-3 text-emerald-300" />}
-        </button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className={`size-1.5 shrink-0 rounded-full ${dotColor(task.priority)}`} />
-            <span className={`truncate text-[13.5px] ${task.done ? "text-white/40 line-through" : "text-white"}`}>{task.title}</span>
-          </div>
-          {(task.group || task.due) && (
-            <div className="mt-1 flex items-center gap-2 pl-3.5 text-xs text-white/40">
-              {task.group && <span className="flex items-center gap-1"><UserIcon className="size-3" />{task.group}</span>}
-              {task.due && <span className="time-pill"><Clock className="size-3" />{task.due}</span>}
-            </div>
-          )}
-        </div>
-        <button onClick={() => onStar(task.id)} className="shrink-0 transition hover:scale-110" aria-label="Star">
-          <Star className={`size-3.5 transition ${task.starred ? "fill-amber-300 text-amber-300" : "text-white/20 hover:text-white/60"}`} />
-        </button>
-      </div>
-      <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-2 pl-[26px]">
-        <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-xs text-[#7dafff] transition hover:text-white">
-          <ChevronRight className={`size-3 transition ${open ? "rotate-90" : ""}`} /> Prep steps ({doneSteps}/{totalSteps})
-        </button>
-        <button onClick={onInsight} className="flex items-center gap-1 text-xs text-white/50 transition hover:text-[#7dafff]" aria-label="Insights">
-          <Lightbulb className="size-3" /> Insights
-        </button>
-      </div>
-      {open && (
-        <div className="slide-down mt-2 space-y-1 pl-[26px] text-xs text-white/50">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className={`size-1 rounded-full ${i < doneSteps ? "bg-emerald-400" : "bg-white/20"}`} />
-              <span className={i < doneSteps ? "line-through text-white/30" : ""}>Step {i + 1}</span>
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="fade-in group flex items-center gap-3 rounded-xl border border-white/5 bg-[#121725]/70 px-3 py-2.5 transition hover:border-white/15 hover:bg-[#161c2d]/80">
+      <button onClick={(e) => onToggle(task.id, e)} className={`grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition ${task.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/25 hover:border-white"}`} aria-label="Toggle">
+        {task.done && <Check className="size-3 text-emerald-300" />}
+      </button>
+      <span className={`min-w-0 flex-1 truncate text-[13.5px] ${task.done ? "text-white/40 line-through" : "text-white/95"}`}>{task.title}</span>
+      {shortTime && <span className="shrink-0 text-[11px] text-white/45">{shortTime}</span>}
+      <button onClick={() => onStar(task.id)} className="shrink-0 transition hover:scale-110" aria-label="Star">
+        <Star className={`size-3.5 transition ${task.starred ? "fill-amber-300 text-amber-300" : "text-white/20 hover:text-white/60"}`} />
+      </button>
+      <button onClick={onInsight} className="shrink-0 text-amber-300/80 transition hover:text-amber-300" aria-label="Insights" title="Insights">
+        <Lightbulb className="size-3.5" />
+      </button>
     </div>
   );
 }
 
+// Previous list (home page slice)
+function PreviousList({ tasks }: { tasks: Task[] }) {
+  const completed = tasks.filter((t) => t.done).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0)).slice(0, 8);
+  if (completed.length === 0) return <div className="rounded-2xl border border-white/5 bg-[#121725]/60 px-3 py-10 text-center text-sm text-white/40">Nothing completed yet. Knock out a task to see it here.</div>;
+  return (
+    <div className="rounded-2xl border border-white/5 bg-[#121725]/60 p-2">
+      {completed.map((t) => (
+        <div key={t.id} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-white/[0.03]">
+          <Check className="size-4 shrink-0 text-emerald-300" />
+          <span className={`size-1.5 shrink-0 rounded-full dot-${t.priority}`} />
+          <span className="flex-1 truncate text-sm text-white/50 line-through">{t.title}</span>
+          {t.due && <span className="text-[11px] text-white/35">{t.due}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ============ Starred ============
 function StarredPage({ tasks, onToggle, onStar }: { tasks: Task[]; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
@@ -661,12 +718,12 @@ function StarredPage({ tasks, onToggle, onStar }: { tasks: Task[]; onToggle: (id
   return (
     <section>
       <h2 className="mb-4 text-xl font-semibold text-white">Starred tasks</h2>
-      <div className="glass-panel p-4">
+      <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
         {starred.length === 0 ? (
           <div className="px-3 py-12 text-center text-sm text-white/50">No starred tasks yet. Tap the star on any task to pin it here.</div>
         ) : (
           <div className="space-y-2">
-            {starred.map((t) => <TaskRow key={t.id} task={t} onInsight={() => {}} onToggle={onToggle} onStar={onStar} />)}
+            {starred.map((t) => <TaskRow key={t.id} task={t} onInsight={() => { /* noop */ }} onToggle={onToggle} onStar={onStar} />)}
           </div>
         )}
       </div>
@@ -677,7 +734,6 @@ function StarredPage({ tasks, onToggle, onStar }: { tasks: Task[]; onToggle: (id
 // ============ Today's Plan (timeline) ============
 function PlanPage({ tasks, onToggle, ask }: { tasks: Task[]; onToggle: (id: string, e?: React.MouseEvent) => void; ask: (q: string) => void }) {
   const open = tasks.filter((t) => !t.done);
-  // Naive time order: tasks with "AM/PM" or hour first, else by priority
   const sorted = [...open].sort((a, b) => {
     const pa = parseHour(a.due); const pb = parseHour(b.due);
     if (pa !== null && pb !== null) return pa - pb;
@@ -694,27 +750,24 @@ function PlanPage({ tasks, onToggle, ask }: { tasks: Task[]; onToggle: (id: stri
           <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Today</div>
           <h2 className="mt-1 text-xl font-semibold text-white">Today's plan · {today}</h2>
         </div>
-        <span className="rounded-md bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] px-2 py-0.5 text-[10px] font-semibold text-white">AI</span>
+        <span className="rounded-md bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-2 py-0.5 text-[10px] font-semibold text-white">AI</span>
       </div>
-      <div className="glass-panel p-5">
+      <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
         <div className="space-y-3">
           {sorted.map((t) => (
-            <div key={t.id} className={`flex items-center gap-3 rounded-lg border-l-2 bg-white/[0.03] p-3 transition hover:-translate-y-px hover:bg-white/[0.06] ${t.priority === "high" ? "border-red-400" : t.priority === "low" ? "border-emerald-400" : "border-amber-400"}`}>
+            <div key={t.id} className={`flex items-center gap-3 rounded-lg border-l-2 bg-white/[0.03] p-3 transition hover:-translate-y-px hover:bg-white/[0.06] ${t.priority === "high" ? "border-red-400/60" : t.priority === "low" ? "border-emerald-400/60" : "border-amber-400/60"}`}>
               <span className="time-pill"><Clock className="size-3" />{t.due || "Anytime"}</span>
               <div className="flex-1">
                 <div className="text-sm text-white">{t.title}</div>
                 {t.group && <div className="text-xs text-white/40">{t.group}</div>}
               </div>
               <button onClick={(e) => onToggle(t.id, e)} className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:border-emerald-400/40 hover:text-white">Mark done</button>
-              <button onClick={() => ask(`Insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)} className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:border-[#4f8ef7]/40 hover:text-white"><Lightbulb className="mr-1 inline size-3" />Insights</button>
+              <button onClick={() => ask(`Insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)} className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:border-[#5B8DEF]/40 hover:text-white"><Lightbulb className="mr-1 inline size-3" />Insights</button>
             </div>
           ))}
           {sorted.length === 0 && <div className="px-3 py-12 text-center text-sm text-white/50">Nothing scheduled. Take a breath.</div>}
         </div>
       </div>
-      <button onClick={() => ask("Plan my day with my current tasks. Use TIME blocks.")} className="glass-panel flex w-full items-center justify-center gap-2 p-4 text-sm text-white/80 transition hover:-translate-y-px hover:bg-white/[0.06]">
-        <Sparkles className="size-4 text-[#a78bfa]" /> Ask Gemini to optimize this plan
-      </button>
     </section>
   );
 }
@@ -734,7 +787,6 @@ function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
   const [range, setRange] = useState<"7" | "15" | "30">("7");
   const done = tasks.filter((t) => t.done);
   const onTime = done.length ? Math.round((done.length / Math.max(tasks.length, 1)) * 100) : 0;
-  // synthetic chart for last 7 days
   const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
     return { label: d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1), v: 2 + ((i * 3 + done.length) % 6) };
@@ -744,9 +796,8 @@ function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
     <section className="space-y-4">
       <div className="flex items-end justify-between">
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Pulse · Analytics</div>
-          <h2 className="mt-1 text-xl font-semibold text-white">Habit tracker</h2>
-          <p className="mt-1 text-sm text-white/50">Quiet telemetry on consistency, focus windows, and execution velocity.</p>
+          <h2 className="text-xl font-semibold text-white">Habit tracker</h2>
+          <p className="mt-1 text-sm text-white/50">Quiet telemetry on consistency, focus, and velocity.</p>
         </div>
         <div className="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-1 text-xs">
           {(["7", "15", "30"] as const).map((r) => (
@@ -754,56 +805,31 @@ function HabitsPage({ tasks, profile }: { tasks: Task[]; profile: Profile }) {
           ))}
         </div>
       </div>
-
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="glass-panel p-5 lg:col-span-1">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Pulse rating</div>
           <div className="mt-3 flex items-center gap-4">
             <Ring value={profile.pulseScore} />
             <div>
               <div className="text-3xl font-bold text-white">{profile.pulseScore}</div>
-              <div className="text-xs text-emerald-300">3 day streak · longest 5d</div>
+              <div className="text-xs text-emerald-300">3 day streak</div>
             </div>
           </div>
-          <p className="mt-4 text-xs text-white/60">You completed {done.length} tasks this week, holding a 3-day productivity streak. Watch financial deadlines due in 3 days.</p>
         </div>
-        <div className="glass-panel p-5 lg:col-span-2">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-5 lg:col-span-2">
           <div className="grid grid-cols-3 gap-4">
             <Stat label="Completed" v={done.length} />
             <Stat label="On-time %" v={`${onTime}%`} />
-            <Stat label="Avg tasks/day" v={(done.length / 7).toFixed(1)} />
+            <Stat label="Avg/day" v={(done.length / 7).toFixed(1)} />
           </div>
-          <div className="mt-6">
-            <div className="mb-2 flex items-end justify-between">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Consistency · 7 days</div>
-              <div className="text-xs text-white/50">Peak: 10:00</div>
-            </div>
-            <div className="flex h-32 items-end gap-2">
-              {days.map((d, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                  <div className="w-full rounded-t-md bg-gradient-to-t from-[#4f8ef7] to-[#a78bfa] transition-all" style={{ height: `${(d.v / maxV) * 100}%` }} />
-                  <span className="text-[10px] text-white/40">{d.label}</span>
-                </div>
-              ))}
-            </div>
+          <div className="mt-6 flex h-32 items-end gap-2">
+            {days.map((d, i) => (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                <div className="w-full rounded-t-md bg-gradient-to-t from-[#5B8DEF] to-[#8B5CF6]" style={{ height: `${(d.v / maxV) * 100}%` }} />
+                <span className="text-[10px] text-white/40">{d.label}</span>
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
-
-      <div className="glass-panel p-5">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Task density by category</div>
-        <div className="mt-3 space-y-2.5">
-          {[
-            { l: "Work & engineering", v: 72 },
-            { l: "Study & reading", v: 85 },
-            { l: "Personal & health", v: 55 },
-            { l: "Finance & payments", v: 92 },
-          ].map((b) => (
-            <div key={b.l}>
-              <div className="mb-1 flex justify-between text-xs"><span className="text-white/70">{b.l}</span><span className="text-white/50">{b.v}%</span></div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/5"><div className="h-full bg-gradient-to-r from-[#4f8ef7] to-[#a78bfa]" style={{ width: `${b.v}%` }} /></div>
-            </div>
-          ))}
         </div>
       </div>
     </section>
@@ -816,7 +842,7 @@ function Ring({ value }: { value: number }) {
     <svg width="80" height="80" viewBox="0 0 64 64" className="-rotate-90">
       <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.08)" strokeWidth="6" fill="none" />
       <circle cx="32" cy="32" r="28" stroke="url(#g)" strokeWidth="6" fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} />
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0%" stopColor="#4f8ef7" /><stop offset="100%" stopColor="#a78bfa" /></linearGradient></defs>
+      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0%" stopColor="#5B8DEF" /><stop offset="100%" stopColor="#8B5CF6" /></linearGradient></defs>
     </svg>
   );
 }
@@ -848,17 +874,17 @@ function PreviousPage({ tasks }: { tasks: Task[] }) {
         <h2 className="text-xl font-semibold text-white">Previous tasks</h2>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter..." className="h-9 w-64 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
       </div>
-      {Object.keys(groups).length === 0 && <div className="glass-panel px-3 py-12 text-center text-sm text-white/50">No completed tasks yet.</div>}
+      {Object.keys(groups).length === 0 && <div className="rounded-2xl border border-white/8 bg-[#121725]/60 px-3 py-12 text-center text-sm text-white/50">No completed tasks yet.</div>}
       {Object.entries(groups).map(([k, list]) => (
         <div key={k}>
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">{k}</div>
-          <div className="glass-panel space-y-2 p-3">
+          <div className="space-y-2 rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
             {list.map((t) => (
               <div key={t.id} className="flex items-center gap-3 px-2 py-1.5">
                 <Check className="size-4 text-emerald-300" />
-                <span className={`size-1.5 rounded-full ${dotColor(t.priority)}`} />
+                <span className={`size-1.5 rounded-full dot-${t.priority}`} />
                 <span className="flex-1 text-sm text-white/50 line-through">{t.title}</span>
-                {t.due && <span className="time-pill"><Clock className="size-3" />{t.due}</span>}
+                {t.due && <span className="text-[11px] text-white/35">{t.due}</span>}
               </div>
             ))}
           </div>
@@ -904,10 +930,10 @@ function ProfileModal({ profile, onSave, onClose }: { profile: Profile; onSave: 
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="slide-down fixed left-1/2 top-1/2 z-50 w-[min(560px,92vw)] -translate-x-1/2 -translate-y-1/2 glass-panel p-6">
+      <div className="slide-down fixed left-1/2 top-1/2 z-50 w-[min(560px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/8 bg-[#121725] p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xl font-bold text-white">{p.initials}</div>
+            <div className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] text-xl font-bold text-white">{p.initials}</div>
             <div>
               <div className="text-lg font-semibold text-white">Your profile</div>
               <div className="text-xs text-white/50">The AI uses this to personalize every reply.</div>
@@ -922,14 +948,14 @@ function ProfileModal({ profile, onSave, onClose }: { profile: Profile; onSave: 
           <Field label="Phone" v={p.phone} onChange={(v) => setP({ ...p, phone: v })} />
         </div>
         <div className="mt-4">
-          <div className="mb-1 flex items-center gap-2 text-xs text-white/70"><UserIcon className="size-3.5 text-[#a78bfa]" /> The AI knows you better when you fill this in</div>
+          <div className="mb-1 flex items-center gap-2 text-xs text-white/70"><UserIcon className="size-3.5 text-[#8B5CF6]" /> AI context</div>
           <textarea value={p.aiContext} onChange={(e) => setP({ ...p, aiContext: e.target.value })} rows={5}
-            placeholder="Tell the AI about yourself — your job, clients, family, routines, goals. The more you share, the smarter your assistant gets."
-            className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-[#4f8ef7]/50 focus:outline-none" />
+            placeholder="Tell the AI about yourself — job, routines, goals."
+            className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-[#5B8DEF]/50 focus:outline-none" />
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-md border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/5">Cancel</button>
-          <button onClick={() => onSave(p)} className="rounded-md bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#4f8ef7]/20 transition hover:-translate-y-px">Save changes</button>
+          <button onClick={() => onSave(p)} className="rounded-md bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#5B8DEF]/20 transition hover:-translate-y-px">Save</button>
         </div>
       </div>
     </>
