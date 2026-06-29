@@ -1346,10 +1346,12 @@ function GeminiInsights({ stats, profile }: { stats: ReturnType<typeof computeSt
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
+    if (stats.assigned === 0) { setLoading(false); setInsights([]); return; }
     let cancelled = false;
     async function run() {
       setLoading(true); setErr(null);
       try {
+
         const res = await fetch("/api/gemini-insights", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
