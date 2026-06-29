@@ -1,4 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PulseTasks } from "./index";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/template")({ component: PulseTasks });
+export const Route = createFileRoute("/template")({
+  beforeLoad: () => {
+    throw redirect({ to: "/" });
+  },
+});
