@@ -439,10 +439,10 @@ function HomePage({ tasks, counts, input, setInput, aiActive, ask, submit, start
 
       {/* Tasks board */}
       <section className="mt-10">
-        <div className="mb-4 flex items-end justify-between">
+        <div className="mb-4">
           <h2 className="text-xl font-semibold text-white">Today's tasks</h2>
-          <div className="text-sm text-white/50">{counts.open} open · {counts.todayDone} done</div>
         </div>
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
