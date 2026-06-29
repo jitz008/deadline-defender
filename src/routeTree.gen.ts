@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TemplateRouteImport } from './routes/template'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as GoogleTasksRouteImport } from './routes/google-tasks'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiAskRouteImport } from './routes/api/ask'
@@ -23,6 +26,21 @@ const TemplateRoute = TemplateRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoogleTasksRoute = GoogleTasksRouteImport.update({
+  id: '/google-tasks',
+  path: '/google-tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,6 +61,9 @@ const ApiAskRoute = ApiAskRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
+  '/google-tasks': typeof GoogleTasksRoute
+  '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/template': typeof TemplateRoute
   '/api/ask': typeof ApiAskRoute
@@ -50,6 +71,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
+  '/google-tasks': typeof GoogleTasksRoute
+  '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/template': typeof TemplateRoute
   '/api/ask': typeof ApiAskRoute
@@ -58,6 +82,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
+  '/google-tasks': typeof GoogleTasksRoute
+  '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/template': typeof TemplateRoute
   '/api/ask': typeof ApiAskRoute
@@ -65,14 +92,42 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sitemap.xml' | '/template' | '/api/ask' | '/api/chat'
+  fullPaths:
+    | '/'
+    | '/calendar'
+    | '/google-tasks'
+    | '/login'
+    | '/sitemap.xml'
+    | '/template'
+    | '/api/ask'
+    | '/api/chat'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sitemap.xml' | '/template' | '/api/ask' | '/api/chat'
-  id: '__root__' | '/' | '/sitemap.xml' | '/template' | '/api/ask' | '/api/chat'
+  to:
+    | '/'
+    | '/calendar'
+    | '/google-tasks'
+    | '/login'
+    | '/sitemap.xml'
+    | '/template'
+    | '/api/ask'
+    | '/api/chat'
+  id:
+    | '__root__'
+    | '/'
+    | '/calendar'
+    | '/google-tasks'
+    | '/login'
+    | '/sitemap.xml'
+    | '/template'
+    | '/api/ask'
+    | '/api/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalendarRoute: typeof CalendarRoute
+  GoogleTasksRoute: typeof GoogleTasksRoute
+  LoginRoute: typeof LoginRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemplateRoute: typeof TemplateRoute
   ApiAskRoute: typeof ApiAskRoute
@@ -93,6 +148,27 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/google-tasks': {
+      id: '/google-tasks'
+      path: '/google-tasks'
+      fullPath: '/google-tasks'
+      preLoaderRoute: typeof GoogleTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,6 +197,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalendarRoute: CalendarRoute,
+  GoogleTasksRoute: GoogleTasksRoute,
+  LoginRoute: LoginRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TemplateRoute: TemplateRoute,
   ApiAskRoute: ApiAskRoute,

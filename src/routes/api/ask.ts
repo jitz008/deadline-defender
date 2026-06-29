@@ -4,7 +4,8 @@ import { generateText } from "ai";
 
 const SYSTEM_PROMPT = `You are the AI chief of staff inside Pulse Tasks 2.0. Be sharp, specific, and warm. Always tailor your reply to exactly what the user said — never give a generic answer.
 
-Today is ${new Date().toDateString()}.
+You will be told the user's CURRENT LOCAL TIME on each request. Use it to reason about "today", "tonight", "tomorrow", deadlines, and scheduling. Never invent a different time.
+
 
 STYLE:
 - Short, conversational, helpful. ONE fact per line. Each line under 14 words. Use line breaks between facts.
@@ -48,26 +49,28 @@ Got it, locked in as high priority.
 SUGGEST_TASK: Meeting at 3 PM | PRIORITY: high | TIME: Today 3:00 PM
 FOLLOW_UPS: ["Who is it with?","Add a 15-min prep block?","Block the next hour after?"]`;
 
-type Body = { message?: string; taskContext?: unknown; profile?: string; history?: unknown };
+type Body = { message?: string; taskContext?: unknown; profile?: string; history?: unknown; currentTime?: string };
 
 export const Route = createFileRoute("/api/ask")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { message, taskContext, profile, history } = (await request.json()) as Body;
+        const { message, taskContext, profile, history, currentTime } = (await request.json()) as Body;
         if (!message || typeof message !== "string") {
           return new Response("message required", { status: 400 });
         }
         const key = process.env.LOVABLE_API_KEY;
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
+        const nowStr = currentTime ? new Date(currentTime).toString() : new Date().toString();
         const gateway = createLovableAiGatewayProvider(key);
         try {
           const { text } = await generateText({
             model: gateway("google/gemini-3-flash-preview"),
             system: SYSTEM_PROMPT,
-            prompt: `User profile: ${profile || "(none provided)"}\n\nCurrent tasks:\n${JSON.stringify(taskContext ?? [], null, 2)}\n\nRecent chat:\n${JSON.stringify(history ?? [], null, 2)}\n\nUser: ${message}`,
+            prompt: `CURRENT LOCAL TIME: ${nowStr}\n\nUser profile: ${profile || "(none provided)"}\n\nCurrent tasks:\n${JSON.stringify(taskContext ?? [], null, 2)}\n\nRecent chat:\n${JSON.stringify(history ?? [], null, 2)}\n\nUser: ${message}`,
           });
+
           return new Response(JSON.stringify({ text }), {
             headers: { "Content-Type": "application/json" },
           });

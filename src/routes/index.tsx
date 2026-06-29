@@ -1,14 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Star, ListChecks, CalendarClock, Activity, History,
   Sparkles, Mic, X, Lightbulb, Plus, Check,
   LogOut, Clock, Trash2, User as UserIcon, ChevronUp, Info,
   PanelLeftClose, PanelLeftOpen, Inbox, Trophy, FolderKanban, Zap,
+  CalendarDays, ListTodo,
 } from "lucide-react";
 import { tasksStore, useTasks, type Priority, type Task } from "@/lib/tasks";
+import { allIntegrationItems, type IntegrationItem } from "@/lib/integrations";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { InteractiveDotGrid } from "@/components/InteractiveDotGrid";
+import { Calendar } from "@/components/ui/calendar";
 
 export const Route = createFileRoute("/")({ component: PulseTasks });
+
 
 // ============ Types & Parsing ============
 type Block = { time: string; task: string; priority: Priority };
@@ -120,6 +126,12 @@ const navItems: { key: Page; icon: typeof Home; label: string; badge?: string }[
   { key: "habits", icon: Activity, label: "Habit tracker" },
 ];
 
+const integrationLinks: { to: string; icon: typeof CalendarDays; label: string; badgeClass: string }[] = [
+  { to: "/calendar", icon: CalendarDays, label: "Google Calendar", badgeClass: "text-blue-300" },
+  { to: "/google-tasks", icon: ListTodo, label: "Google Tasks", badgeClass: "text-sky-300" },
+];
+
+
 const myLists = [
   { name: "My Tasks", icon: Inbox },
   { name: "Hackathon Tasks", icon: Trophy },
@@ -188,6 +200,21 @@ function Sidebar({
           <History className="size-5 shrink-0" strokeWidth={1.75} />
           {expanded && <span className="truncate">Previous tasks</span>}
         </button>
+
+        <div className="my-2 h-px bg-white/5" />
+        {expanded && <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">Integrations</div>}
+        {integrationLinks.map((it) => (
+          <Link
+            key={it.to}
+            to={it.to}
+            title={it.label}
+            className="group/btn flex h-10 items-center gap-3 rounded-xl px-2.5 text-sm text-white/55 transition hover:bg-white/5 hover:text-white"
+          >
+            <it.icon className={`size-5 shrink-0 ${it.badgeClass}`} strokeWidth={1.75} />
+            {expanded && <span className="flex-1 truncate text-left">{it.label}</span>}
+          </Link>
+        ))}
+
 
         {expanded && (
           <div className="mt-4">
@@ -295,11 +322,13 @@ function PulseTasks() {
         body: JSON.stringify({
           message,
           profile: profile.aiContext,
+          currentTime: new Date().toISOString(),
           taskContext: tasks.filter((t) => !t.done).map((t) => ({
             id: t.id, title: t.title, priority: t.priority, due: t.due, group: t.group,
           })),
           history: next.slice(-6).map((m) => ({ role: m.role, text: m.text })),
         }),
+
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "AI error");
@@ -387,7 +416,7 @@ function PulseTasks() {
 
   return (
     <div className="min-h-screen transition-[padding] duration-200 ease-out" style={{ paddingLeft: expanded ? 250 : 64 }}>
-      <div className="page-mesh" />
+      <AnimatedBackground />
       <Sidebar
         page={page} setPage={setPage} profile={profile}
         onAvatar={() => setShowProfile(true)}
@@ -401,7 +430,8 @@ function PulseTasks() {
       ))}
 
       {/* Top mini bar */}
-      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-[#0A0E17]/80 px-6 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b border-white/5 bg-black/40 px-6 backdrop-blur-xl">
+        <LiveClock />
         <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
           <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400/70"}`} />
           {aiActive ? "Gemini thinking" : "Gemini standby"}
@@ -409,8 +439,9 @@ function PulseTasks() {
         <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white" aria-label="History">
           <History className="size-4" />
         </button>
-        <button className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></button>
+        <Link to="/login" className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></Link>
       </header>
+
 
       {/* Pulse score chip */}
       <div className={`fixed bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0d0f14]/80 px-3 py-1.5 text-xs backdrop-blur-xl ${scorePop ? "score-pop" : ""}`}>
@@ -463,10 +494,10 @@ function HomePage({
 
   return (
     <>
-      {/* Hero: Tasks 2.0 */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-[#121725]/60 p-10 text-center">
+      {/* Hero: Tasks 2.0 — feathered edges */}
+      <section className="feather-mask relative overflow-hidden p-10 text-center">
         <div className="mesh-bg" />
-        <div className="dot-grid" />
+        <InteractiveDotGrid baseOpacity={0.18} influence={160} />
         <div className="relative z-10">
           <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
             <span className="text-white">Tasks </span>
@@ -482,15 +513,14 @@ function HomePage({
         <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
       </div>
 
-
-      {/* Inline conversation — above the command bar */}
+      {/* Inline conversation — scrollable container so input bar stays sticky */}
       {messages.length > 0 && (
         <section className="slide-down mt-8 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
             <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
           </div>
-          <div className="space-y-5">
+          <div className="max-h-[55vh] space-y-5 overflow-y-auto pr-1">
             {messages.map((m, i) => m.role === "user"
               ? <UserBubble key={i} text={m.text} />
               : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
@@ -500,9 +530,9 @@ function HomePage({
         </section>
       )}
 
-      {/* AI command bar */}
-      <section className="mt-6">
-        <div className="rounded-2xl border border-white/8 bg-[#121725]/80 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+      {/* AI command bar — sticky so it stays pinned while content scrolls */}
+      <section className="sticky bottom-4 z-20 mt-6">
+        <div className="rounded-2xl border border-white/10 bg-[#0a0e17]/90 p-3 shadow-2xl shadow-blue-900/40 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
               <Sparkles className="size-4 text-white" />
@@ -533,20 +563,21 @@ function HomePage({
         {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
       </section>
 
-
-      {/* Today's tasks */}
+      {/* Today's tasks — includes Google Calendar + Google Tasks items */}
       <section className="mt-10">
         <h2 className="mb-5 text-lg font-semibold text-white">Today's tasks</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
               tasks={tasks.filter((t) => t.priority === p && !t.done)}
+              integrations={allIntegrationItems().filter((i) => i.priority === p)}
               onInsight={(t) => ask(`Give me insights on "${t.title}"${t.due ? ` (due ${t.due})` : ""}.`)}
               onToggle={onToggle} onStar={onStar}
             />
           ))}
         </div>
       </section>
+
 
       {/* Drag handle + Previous tasks */}
       <section className="mt-12">
@@ -660,8 +691,8 @@ function AiBubble({ msg, onFollowUp, onOption }: { msg: ChatMsg; onFollowUp: (q:
 }
 
 // ============ Column ============
-function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
-  priority: Priority; title: string; tasks: Task[];
+function Column({ priority, title, tasks, integrations = [], onInsight, onToggle, onStar }: {
+  priority: Priority; title: string; tasks: Task[]; integrations?: IntegrationItem[];
   onInsight: (t: Task) => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void;
 }) {
   const [adding, setAdding] = useState(false);
@@ -673,10 +704,11 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
       <div className="mb-4 flex items-center gap-2 px-1">
         <span className={`size-2 rounded-full dot-${priority}`} />
         <span className="text-[13px] font-medium text-white/85">{title}</span>
-        <span className="ml-auto text-[11px] text-white/35">{tasks.length}</span>
+        <span className="ml-auto text-[11px] text-white/35">{tasks.length + integrations.length}</span>
       </div>
       <div className="space-y-2">
         {tasks.map((t) => <TaskRow key={t.id} task={t} onInsight={() => onInsight(t)} onToggle={onToggle} onStar={onStar} />)}
+        {integrations.map((i) => <IntegrationRow key={i.id} item={i} />)}
       </div>
       {adding ? (
         <form onSubmit={(e) => { e.preventDefault(); if (val.trim()) tasksStore.add({ title: val.trim(), priority }); setVal(""); setAdding(false); }} className="mt-2">
@@ -687,6 +719,7 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
       )}
     </div>
   );
+
 }
 
 function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight: () => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
@@ -873,41 +906,94 @@ function Stat({ label, v }: { label: string; v: number | string }) {
 // ============ Previous ============
 function PreviousPage({ tasks }: { tasks: Task[] }) {
   const [q, setQ] = useState("");
-  const completed = tasks.filter((t) => t.done && t.title.toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
-  const groups: Record<string, Task[]> = {};
-  for (const t of completed) {
-    const d = new Date(t.completedAt || 0); const today = new Date();
-    const sameDay = d.toDateString() === today.toDateString();
-    const yest = new Date(); yest.setDate(yest.getDate() - 1);
-    const key = sameDay ? "Today" : d.toDateString() === yest.toDateString() ? "Yesterday" : d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
-    (groups[key] ||= []).push(t);
-  }
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const completed = tasks.filter((t) => {
+    if (!t.done) return false;
+    if (q && !t.title.toLowerCase().includes(q.toLowerCase())) return false;
+    if (selectedDate) {
+      const d = new Date(t.completedAt || 0);
+      if (d.toDateString() !== selectedDate.toDateString()) return false;
+    }
+    return true;
+  }).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between">
         <h2 className="text-xl font-semibold text-white">Previous tasks</h2>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter..." className="h-9 w-64 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
       </div>
-      {Object.keys(groups).length === 0 && <div className="rounded-2xl border border-white/8 bg-[#121725]/60 px-3 py-12 text-center text-sm text-white/50">No completed tasks yet.</div>}
-      {Object.entries(groups).map(([k, list]) => (
-        <div key={k}>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">{k}</div>
-          <div className="space-y-2 rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
-            {list.map((t) => (
-              <div key={t.id} className="flex items-center gap-3 px-2 py-1.5">
-                <Check className="size-4 text-emerald-300" />
-                <span className={`size-1.5 rounded-full dot-${t.priority}`} />
-                <span className="flex-1 text-sm text-white/50 line-through">{t.title}</span>
-                {t.due && <span className="text-[11px] text-white/35">{t.due}</span>}
-              </div>
-            ))}
-          </div>
+      <div className="grid gap-4 md:grid-cols-[auto_1fr]">
+        <div className="rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
+          <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="pointer-events-auto" />
+          {selectedDate && (
+            <button onClick={() => setSelectedDate(undefined)} className="mt-2 w-full rounded-md border border-white/10 px-2 py-1 text-xs text-white/60 hover:bg-white/5 hover:text-white">Clear date</button>
+          )}
         </div>
-      ))}
+        <div className="space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+            {selectedDate ? selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }) : "All completed"}
+          </div>
+          {completed.length === 0 && <div className="rounded-2xl border border-white/8 bg-[#121725]/60 px-3 py-12 text-center text-sm text-white/50">No completed tasks for this date.</div>}
+          {completed.length > 0 && (
+            <div className="space-y-2 rounded-2xl border border-white/8 bg-[#121725]/60 p-3">
+              {completed.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 px-2 py-1.5">
+                  <Check className="size-4 text-emerald-300" />
+                  <span className={`size-1.5 rounded-full dot-${t.priority}`} />
+                  <span className="flex-1 text-sm text-white/50 line-through">{t.title}</span>
+                  {t.due && <span className="text-[11px] text-white/35">{t.due}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </section>
   );
 }
+
+// ============ Integration row + Live clock + Source badge ============
+function SourceBadge({ source }: { source: IntegrationItem["source"] }) {
+  const cls = source === "calendar" ? "badge-calendar" : "badge-gtasks";
+  const label = source === "calendar" ? "Calendar" : "Tasks";
+  const Icon = source === "calendar" ? CalendarDays : ListTodo;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>
+      <Icon className="size-2.5" />{label}
+    </span>
+  );
+}
+
+function IntegrationRow({ item }: { item: IntegrationItem }) {
+  return (
+    <div className="fade-in flex items-center gap-3 rounded-xl border border-white/5 bg-[#0d1422]/70 px-3 py-2.5 transition hover:border-white/15">
+      <div className={`grid size-[18px] shrink-0 place-items-center rounded-[5px] border ${item.source === "calendar" ? "border-blue-400/50 bg-blue-500/15" : "border-sky-400/50 bg-sky-500/15"}`}>
+        {item.source === "calendar" ? <CalendarDays className="size-3 text-blue-200" /> : <ListTodo className="size-3 text-sky-200" />}
+      </div>
+      <span className="min-w-0 flex-1 truncate text-[13.5px] text-white/95">{item.title}</span>
+      {item.due && <span className="shrink-0 text-[11px] text-white/45">{item.due}</span>}
+      <SourceBadge source={item.source} />
+    </div>
+  );
+}
+
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/60 sm:flex">
+      <Clock className="size-3 text-white/40" />
+      <span>{now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+      <span className="text-white/30">·</span>
+      <span>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
+    </div>
+  );
+}
+
 
 // ============ History Panel ============
 function HistoryPanel({ sessions, onClose, onPick, onClear }: { sessions: ChatSession[]; onClose: () => void; onPick: (s: ChatSession) => void; onClear: () => void }) {
