@@ -247,6 +247,14 @@
 }
 .wave-text { animation: wave 3s ease-in-out infinite; display: inline-block; }
 
+/* Custom line-clamp fallback for task titles */
+@utility line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 /* Greeting entrance */
 @keyframes greet-in {
   0%   { opacity: 0; transform: translateY(14px); filter: blur(6px); }
