@@ -9,6 +9,7 @@ import {
 import { tasksStore, useTasks, type Priority, type Task } from "@/lib/tasks";
 
 export const Route = createFileRoute("/")({ component: PulseTasks });
+export { PulseTasks };
 
 // ============ Types & Parsing ============
 type Block = { time: string; task: string; priority: Priority };
