@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Star, ListChecks, CalendarClock, Activity, History,
   Search, Sparkles, Mic, ArrowUp, X, Lightbulb, Plus, Check,
-  LogOut, Clock, Trash2, User as UserIcon,
+  LogOut, Clock, Trash2, User as UserIcon, ChevronRight, ChevronUp, Info,
 } from "lucide-react";
 import { tasksStore, useTasks, type Priority, type Task } from "@/lib/tasks";
 
@@ -138,43 +138,27 @@ const navItems: { key: Page; icon: typeof Home; label: string; badge?: string }[
   { key: "previous", icon: History, label: "Previous Tasks" },
 ];
 
-function Sidebar({ page, setPage, profile, scorePop }: { page: Page; setPage: (p: Page) => void; profile: Profile; scorePop: boolean }) {
+function Sidebar({ page, setPage, profile, onAvatar }: { page: Page; setPage: (p: Page) => void; profile: Profile; onAvatar: () => void }) {
   return (
-    <aside className="group fixed left-0 top-0 z-30 flex h-screen w-[52px] flex-col justify-between border-r border-white/5 bg-white/[0.02] py-4 backdrop-blur-xl transition-[width] duration-300 hover:w-[220px]">
-      <div className="flex flex-col gap-1 px-2">
-        <div className="mb-4 flex h-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] text-sm font-bold text-white">P</div>
+    <aside className="fixed left-0 top-0 z-30 flex h-screen w-[60px] flex-col justify-between border-r border-white/5 bg-white/[0.02] py-4 backdrop-blur-xl">
+      <div className="flex flex-col items-center gap-1 px-2">
         {navItems.map((it) => {
           const active = page === it.key;
           return (
             <button
               key={it.key}
               onClick={() => setPage(it.key)}
-              className={`relative flex h-10 items-center gap-3 rounded-lg px-2 text-sm transition-all duration-200 ${active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5 hover:text-white"}`}
+              title={it.label}
+              className={`relative grid size-10 place-items-center rounded-xl transition-all duration-200 ${active ? "bg-[#4f8ef7]/15 text-[#7dafff]" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
             >
-              {active && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-[#4f8ef7] to-[#a78bfa]" />}
-              <it.icon className="size-5 shrink-0" />
-              <span className="hidden truncate group-hover:inline">{it.label}</span>
-              {it.badge && (
-                <span className="ml-auto hidden rounded-md bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] px-1.5 py-0.5 text-[10px] font-semibold text-white group-hover:inline">
-                  {it.badge}
-                </span>
-              )}
+              {active && <span className="absolute left-[-10px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#4f8ef7]" />}
+              <it.icon className="size-5" strokeWidth={1.75} />
             </button>
           );
         })}
       </div>
-      <div className="flex flex-col gap-2 px-2">
-        <div className="flex items-center gap-2 rounded-lg p-1.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold text-white">{profile.initials}</div>
-          <div className="hidden min-w-0 group-hover:block">
-            <div className="truncate text-sm text-white/90">{profile.name}</div>
-            <div className="truncate text-[10px] font-semibold uppercase tracking-wider text-white/40">{profile.title}</div>
-          </div>
-        </div>
-        <div className="hidden items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs group-hover:flex">
-          <span className="text-white/60">Pulse</span>
-          <span className={`font-semibold text-emerald-300 ${scorePop ? "score-pop" : ""}`}>{profile.pulseScore}</span>
-        </div>
+      <div className="flex flex-col items-center gap-2 px-2">
+        <button onClick={onAvatar} title={profile.name} className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold text-white transition hover:scale-105">{profile.initials}</button>
       </div>
     </aside>
   );
@@ -306,9 +290,14 @@ function PulseTasks() {
   const quickActions = ["Break it down", "Rescue me", "Plan my day", "Habit check"];
 
   return (
-    <div className="min-h-screen pl-[52px]">
+    <div className="min-h-screen pl-[60px]">
       <div className="page-mesh" />
-      <Sidebar page={page} setPage={setPage} profile={profile} scorePop={scorePop} />
+      <Sidebar page={page} setPage={setPage} profile={profile} onAvatar={() => setShowProfile(true)} />
+
+      {/* Vertical PULSE AI label */}
+      <div className="pointer-events-none fixed right-3 top-1/2 z-20 -translate-y-1/2 select-none text-[10px] font-semibold tracking-[0.3em] text-white/30" style={{ writingMode: "vertical-rl" }}>
+        PULSE AI
+      </div>
 
       {/* Floating +2 */}
       {floats.map((f) => (
@@ -320,20 +309,23 @@ function PulseTasks() {
       {/* Top navbar */}
       <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b border-white/5 bg-[#0d0f14]/70 px-6 backdrop-blur-xl">
         <div className="flex items-center gap-2">
+          <div className="grid size-7 place-items-center rounded-full bg-[#4f8ef7]">
+            <Check className="size-4 text-white" strokeWidth={3} />
+          </div>
           <span className="text-sm font-semibold text-white">Pulse Tasks</span>
-          <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-white/70">2.0</span>
+          <span className="text-[11px] font-medium text-white/40">2.0</span>
         </div>
-        <div className="mx-auto flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3">
+        <div className="mx-auto flex h-9 w-full max-w-xl items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4">
           <Search className="size-4 text-white/40" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tasks..." className="h-full w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none" />
         </div>
-        <div className="ml-auto flex items-center gap-3">
-          <div className="flex items-center gap-2 text-xs text-white/60">
-            <span className={`block size-2 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400/60"}`} />
+        <div className="ml-auto flex items-center gap-2">
+          <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${aiActive ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-200" : "border-white/10 bg-white/[0.03] text-white/70"}`}>
+            <span className={`block size-1.5 rounded-full ${aiActive ? "bg-emerald-400 pulse-dot" : "bg-emerald-400"}`} />
             {aiActive ? "Gemini thinking" : "Gemini standby"}
           </div>
-          <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/60 hover:bg-white/5 hover:text-white" aria-label="History">
-            <Clock className="size-4" />
+          <button onClick={() => setShowHistory(true)} className="grid size-8 place-items-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white" aria-label="History">
+            <Sparkles className="size-4" />
           </button>
           <button onClick={() => setShowProfile(true)} className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#a78bfa] to-[#4f8ef7] text-xs font-bold transition hover:scale-105">{profile.initials}</button>
           <button className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-white" aria-label="Sign out"><LogOut className="size-4" /></button>
@@ -341,8 +333,16 @@ function PulseTasks() {
       </header>
 
       <div className="border-b border-white/5 bg-white/[0.02] px-6 py-2 text-center text-xs text-white/60">
-        You are in guest mode. This is a live demo of Pulse Tasks 2.0. Sign in to save your real tasks.
+        You are in guest mode &mdash; this is a live demo of Pulse Tasks 2.0. Sign in with Google to save your real tasks.
       </div>
+
+      {/* Bottom score chip */}
+      <div className={`fixed bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0d0f14]/80 px-3 py-1.5 text-xs backdrop-blur-xl ${scorePop ? "score-pop" : ""}`}>
+        <Info className="size-3.5 text-white/40" />
+        <span className="font-semibold text-white">{profile.pulseScore}</span>
+        <ChevronUp className="size-3 text-white/40" />
+      </div>
+
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 py-8">
         {page === "home" && (
@@ -381,44 +381,44 @@ function HomePage({ tasks, counts, input, setInput, aiActive, ask, submit, start
 
   return (
     <>
-      <section className="glass-panel relative overflow-hidden p-8">
+      <section className="glass-panel relative overflow-hidden p-12 text-center">
         <div className="mesh-bg" />
         <div className="dot-grid" />
         <div className="relative z-10">
-          <h1 className="text-5xl font-bold tracking-tight md:text-6xl">
+          <h1 className="text-6xl font-semibold tracking-tight md:text-7xl">
             <span className="text-white">Tasks </span>
             <span className="gradient-text">2.0</span>
           </h1>
-          <p className="mt-2 text-white/60">
-            Don't forget yours.{" "}
-            <span className="text-white/80">{counts.open} open · {counts.todayDone} done today</span>
-          </p>
+          <p className="mt-3 text-base text-white/50">Don't forget yours.</p>
         </div>
       </section>
 
       {/* AI input bar */}
       <section className="mt-6">
         <div className="glass-panel breath-glow flex items-center gap-3 p-3">
-          <Sparkles className={`ml-1 size-5 shrink-0 text-[#a78bfa] ${aiActive ? "animate-spin" : ""}`} />
+          <div className={`grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#4f8ef7] to-[#6366f1] shadow-lg shadow-[#4f8ef7]/30 ${aiActive ? "animate-pulse" : ""}`}>
+            <Sparkles className={`size-5 text-white ${aiActive ? "animate-spin" : ""}`} />
+          </div>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-            placeholder="Ask Gemini — plan my day, break down a task, or rescue my schedule..."
-            className="h-10 w-full bg-transparent text-[15px] text-white placeholder:text-white/40 focus:outline-none"
+            placeholder="Try: I have a meeting at 3 and a dinner at 8, plan my day"
+            className="h-10 w-full bg-transparent text-[15px] text-white placeholder:text-white/35 focus:outline-none"
           />
-          <button onClick={startMic} className="grid size-9 place-items-center rounded-lg text-white/60 hover:bg-white/5 hover:text-white" aria-label="Voice"><Mic className="size-4" /></button>
-          <button onClick={submit} disabled={!input.trim() || aiActive} className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] text-white shadow-lg shadow-[#4f8ef7]/20 transition hover:-translate-y-px disabled:opacity-40" aria-label="Send"><ArrowUp className="size-4" /></button>
+          <button onClick={submit} disabled={!input.trim() || aiActive} className="hidden size-9 place-items-center rounded-lg bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] text-white transition hover:-translate-y-px disabled:opacity-40 md:grid" aria-label="Send"><ArrowUp className="size-4" /></button>
+          <button onClick={startMic} className="grid size-10 shrink-0 place-items-center rounded-xl border border-[#4f8ef7]/30 bg-[#4f8ef7]/10 text-[#7dafff] transition hover:bg-[#4f8ef7]/20" aria-label="Voice"><Mic className="size-4" /></button>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {quickActions.map((q) => (
-            <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.07] hover:text-white">
-              <span className="text-[#a78bfa]">/</span> {q}
+            <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/8 bg-white/[0.03] px-3.5 py-1.5 text-xs text-white/70 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.07] hover:text-white">
+              <span className="text-white/40">/</span> {q}
             </button>
           ))}
         </div>
         {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
       </section>
+
 
       {/* Inline chat area */}
       {messages.length > 0 && (
@@ -439,10 +439,10 @@ function HomePage({ tasks, counts, input, setInput, aiActive, ask, submit, start
 
       {/* Tasks board */}
       <section className="mt-10">
-        <div className="mb-4 flex items-end justify-between">
+        <div className="mb-4">
           <h2 className="text-xl font-semibold text-white">Today's tasks</h2>
-          <div className="text-sm text-white/50">{counts.open} open · {counts.todayDone} done</div>
         </div>
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {(["high", "medium", "low"] as Priority[]).map((p) => (
             <Column key={p} priority={p} title={`${p[0].toUpperCase() + p.slice(1)} priority`}
@@ -587,51 +587,73 @@ function Column({ priority, title, tasks, onInsight, onToggle, onStar }: {
 
   return (
     <div className={`${colClass} rounded-2xl p-4 backdrop-blur-md`}>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${dotColor(priority)}`} /><span className="text-sm font-semibold text-white">{title}</span></div>
-        <span className="text-xs text-white/40">{tasks.filter((t) => !t.done).length}</span>
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-sm font-medium text-white/90">{title}</span>
+        <span className={`size-2 rounded-full ${dotColor(priority)}`} />
       </div>
       <div className="space-y-2">
         {tasks.map((t) => <TaskRow key={t.id} task={t} onInsight={() => onInsight(t)} onToggle={onToggle} onStar={onStar} />)}
-        {tasks.length === 0 && <div className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">Nothing here.</div>}
       </div>
       {adding ? (
         <form onSubmit={(e) => { e.preventDefault(); if (val.trim()) tasksStore.add({ title: val.trim(), priority }); setVal(""); setAdding(false); }} className="mt-2">
           <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} onBlur={() => { if (!val.trim()) setAdding(false); }} placeholder="New task..." className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
         </form>
       ) : (
-        <button onClick={() => setAdding(true)} className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"><Plus className="size-4" /> Add Task</button>
+        <button onClick={() => setAdding(true)} className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/40 transition hover:bg-white/5 hover:text-white"><Plus className="size-4" /> Add Task</button>
       )}
     </div>
   );
 }
 
 function TaskRow({ task, onInsight, onToggle, onStar }: { task: Task; onInsight: () => void; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  // Demo: deterministic 0/5 or 2/5 based on priority
+  const totalSteps = 5;
+  const doneSteps = task.priority === "high" && task.title.toLowerCase().includes("pitch") ? 2 : 0;
   return (
-    <div className="group fade-in flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3 transition hover:-translate-y-px hover:border-white/15 hover:bg-white/[0.05]">
-      <button onClick={(e) => onToggle(task.id, e)} className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border transition ${task.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/30 hover:border-white"}`} aria-label="Toggle">
-        {task.done && <Check className="size-3 text-emerald-300" />}
-      </button>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className={`size-1.5 shrink-0 rounded-full ${dotColor(task.priority)}`} />
-          <span className={`truncate text-sm ${task.done ? "text-white/40 line-through" : "text-white"}`}>{task.title}</span>
-        </div>
-        {(task.group || task.due) && (
-          <div className="mt-0.5 flex items-center gap-2 pl-3.5 text-xs text-white/40">
-            {task.group && <span>{task.group}</span>}
-            {task.group && task.due && <span>·</span>}
-            {task.due && <span className="time-pill"><Clock className="size-3" />{task.due}</span>}
+    <div className="fade-in rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-white/15 hover:bg-white/[0.05]">
+      <div className="flex items-start gap-3">
+        <button onClick={(e) => onToggle(task.id, e)} className={`mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition ${task.done ? "border-emerald-400 bg-emerald-400/20" : "border-white/25 hover:border-white"}`} aria-label="Toggle">
+          {task.done && <Check className="size-3 text-emerald-300" />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className={`size-1.5 shrink-0 rounded-full ${dotColor(task.priority)}`} />
+            <span className={`truncate text-[13.5px] ${task.done ? "text-white/40 line-through" : "text-white"}`}>{task.title}</span>
           </div>
-        )}
+          {(task.group || task.due) && (
+            <div className="mt-1 flex items-center gap-2 pl-3.5 text-xs text-white/40">
+              {task.group && <span className="flex items-center gap-1"><UserIcon className="size-3" />{task.group}</span>}
+              {task.due && <span className="time-pill"><Clock className="size-3" />{task.due}</span>}
+            </div>
+          )}
+        </div>
+        <button onClick={() => onStar(task.id)} className="shrink-0 transition hover:scale-110" aria-label="Star">
+          <Star className={`size-3.5 transition ${task.starred ? "fill-amber-300 text-amber-300" : "text-white/20 hover:text-white/60"}`} />
+        </button>
       </div>
-      <button onClick={() => onStar(task.id)} className="transition hover:scale-110" aria-label="Star">
-        <Star className={`size-4 transition ${task.starred ? "fill-amber-300 text-amber-300" : "text-white/30 hover:text-white/60"}`} />
-      </button>
-      <button onClick={onInsight} className="opacity-0 transition group-hover:opacity-100" aria-label="Insights" title="Insights"><Lightbulb className="size-4 text-[#4f8ef7]" /></button>
+      <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-2 pl-[26px]">
+        <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-xs text-[#7dafff] transition hover:text-white">
+          <ChevronRight className={`size-3 transition ${open ? "rotate-90" : ""}`} /> Prep steps ({doneSteps}/{totalSteps})
+        </button>
+        <button onClick={onInsight} className="flex items-center gap-1 text-xs text-white/50 transition hover:text-[#7dafff]" aria-label="Insights">
+          <Lightbulb className="size-3" /> Insights
+        </button>
+      </div>
+      {open && (
+        <div className="slide-down mt-2 space-y-1 pl-[26px] text-xs text-white/50">
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className={`size-1 rounded-full ${i < doneSteps ? "bg-emerald-400" : "bg-white/20"}`} />
+              <span className={i < doneSteps ? "line-through text-white/30" : ""}>Step {i + 1}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ============ Starred ============
 function StarredPage({ tasks, onToggle, onStar }: { tasks: Task[]; onToggle: (id: string, e?: React.MouseEvent) => void; onStar: (id: string) => void }) {
