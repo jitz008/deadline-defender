@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({ component: PulseTasks });
 
 // ---------- AI helpers ----------
 type Suggestion = { title: string; priority?: Priority; due?: string };
-type Parsed = { body: string; followUps: string[]; suggestions: Suggestion[] };
+type Parsed = { body: string; followUps: string[]; suggestions: Suggestion[]; addedIds?: string[] };
 
 function parseAiText(raw: string): Parsed {
   let body = raw;
