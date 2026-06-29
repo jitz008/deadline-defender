@@ -1,14 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Star, ListChecks, CalendarClock, Activity, History,
   Sparkles, Mic, X, Lightbulb, Plus, Check,
   LogOut, Clock, Trash2, User as UserIcon, ChevronUp, Info,
   PanelLeftClose, PanelLeftOpen, Inbox, Trophy, FolderKanban, Zap,
+  CalendarDays, ListTodo,
 } from "lucide-react";
 import { tasksStore, useTasks, type Priority, type Task } from "@/lib/tasks";
+import { allIntegrationItems, type IntegrationItem } from "@/lib/integrations";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { InteractiveDotGrid } from "@/components/InteractiveDotGrid";
+import { Calendar } from "@/components/ui/calendar";
 
 export const Route = createFileRoute("/")({ component: PulseTasks });
+
 
 // ============ Types & Parsing ============
 type Block = { time: string; task: string; priority: Priority };
