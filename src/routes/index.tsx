@@ -322,11 +322,13 @@ function PulseTasks() {
         body: JSON.stringify({
           message,
           profile: profile.aiContext,
+          currentTime: new Date().toISOString(),
           taskContext: tasks.filter((t) => !t.done).map((t) => ({
             id: t.id, title: t.title, priority: t.priority, due: t.due, group: t.group,
           })),
           history: next.slice(-6).map((m) => ({ role: m.role, text: m.text })),
         }),
+
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "AI error");
