@@ -381,44 +381,44 @@ function HomePage({ tasks, counts, input, setInput, aiActive, ask, submit, start
 
   return (
     <>
-      <section className="glass-panel relative overflow-hidden p-8">
+      <section className="glass-panel relative overflow-hidden p-12 text-center">
         <div className="mesh-bg" />
         <div className="dot-grid" />
         <div className="relative z-10">
-          <h1 className="text-5xl font-bold tracking-tight md:text-6xl">
+          <h1 className="text-6xl font-semibold tracking-tight md:text-7xl">
             <span className="text-white">Tasks </span>
             <span className="gradient-text">2.0</span>
           </h1>
-          <p className="mt-2 text-white/60">
-            Don't forget yours.{" "}
-            <span className="text-white/80">{counts.open} open · {counts.todayDone} done today</span>
-          </p>
+          <p className="mt-3 text-base text-white/50">Don't forget yours.</p>
         </div>
       </section>
 
       {/* AI input bar */}
       <section className="mt-6">
         <div className="glass-panel breath-glow flex items-center gap-3 p-3">
-          <Sparkles className={`ml-1 size-5 shrink-0 text-[#a78bfa] ${aiActive ? "animate-spin" : ""}`} />
+          <div className={`grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#4f8ef7] to-[#6366f1] shadow-lg shadow-[#4f8ef7]/30 ${aiActive ? "animate-pulse" : ""}`}>
+            <Sparkles className={`size-5 text-white ${aiActive ? "animate-spin" : ""}`} />
+          </div>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-            placeholder="Ask Gemini — plan my day, break down a task, or rescue my schedule..."
-            className="h-10 w-full bg-transparent text-[15px] text-white placeholder:text-white/40 focus:outline-none"
+            placeholder="Try: I have a meeting at 3 and a dinner at 8, plan my day"
+            className="h-10 w-full bg-transparent text-[15px] text-white placeholder:text-white/35 focus:outline-none"
           />
-          <button onClick={startMic} className="grid size-9 place-items-center rounded-lg text-white/60 hover:bg-white/5 hover:text-white" aria-label="Voice"><Mic className="size-4" /></button>
-          <button onClick={submit} disabled={!input.trim() || aiActive} className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] text-white shadow-lg shadow-[#4f8ef7]/20 transition hover:-translate-y-px disabled:opacity-40" aria-label="Send"><ArrowUp className="size-4" /></button>
+          <button onClick={submit} disabled={!input.trim() || aiActive} className="hidden size-9 place-items-center rounded-lg bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] text-white transition hover:-translate-y-px disabled:opacity-40 md:grid" aria-label="Send"><ArrowUp className="size-4" /></button>
+          <button onClick={startMic} className="grid size-10 shrink-0 place-items-center rounded-xl border border-[#4f8ef7]/30 bg-[#4f8ef7]/10 text-[#7dafff] transition hover:bg-[#4f8ef7]/20" aria-label="Voice"><Mic className="size-4" /></button>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {quickActions.map((q) => (
-            <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.07] hover:text-white">
-              <span className="text-[#a78bfa]">/</span> {q}
+            <button key={q} onClick={() => ask(q)} className="rounded-full border border-white/8 bg-white/[0.03] px-3.5 py-1.5 text-xs text-white/70 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.07] hover:text-white">
+              <span className="text-white/40">/</span> {q}
             </button>
           ))}
         </div>
         {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
       </section>
+
 
       {/* Inline chat area */}
       {messages.length > 0 && (
