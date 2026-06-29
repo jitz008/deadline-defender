@@ -97,7 +97,7 @@ function saveProfile(p: Profile) { try { localStorage.setItem(PROFILE_KEY, JSON.
 function timeGreeting(name: string) {
   const h = new Date().getHours();
   const period = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  return `${period}, ${name}`;
+  return `${period}, ${name}!`;
 }
 
 // ============ Chat history ============
