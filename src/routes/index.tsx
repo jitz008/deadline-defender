@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({ component: PulseTasks });
 
 // ---------- AI helpers ----------
 type Suggestion = { title: string; priority?: Priority; due?: string };
-type Parsed = { body: string; followUps: string[]; suggestions: Suggestion[] };
+type Parsed = { body: string; followUps: string[]; suggestions: Suggestion[]; addedIds?: string[] };
 
 function parseAiText(raw: string): Parsed {
   let body = raw;
@@ -155,7 +155,16 @@ function PulseTasks() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "AI error");
-      setPanel(parseAiText(data.text));
+      const parsed = parseAiText(data.text);
+      // Auto-add any tasks the AI captured from the user's message
+      const added = parsed.suggestions.map((s) =>
+        tasksStore.add({
+          title: s.title,
+          priority: (s.priority as Priority) || "medium",
+          due: s.due,
+        }).id,
+      );
+      setPanel({ ...parsed, addedIds: added });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong";
       setError(msg);
@@ -297,13 +306,7 @@ function PulseTasks() {
               parsed={panel}
               onClose={() => setPanel(null)}
               onFollowUp={(q) => ask(q)}
-              onAdd={(s) => {
-                tasksStore.add({
-                  title: s.title,
-                  priority: (s.priority as Priority) || "medium",
-                  due: s.due,
-                });
-              }}
+              onUndo={(id) => tasksStore.remove(id)}
             />
           )}
         </section>
@@ -332,14 +335,14 @@ function matchSearch(t: Task, q: string) {
 
 // ---------- Floating panel ----------
 function FloatingPanel({
-  parsed, onClose, onFollowUp, onAdd,
+  parsed, onClose, onFollowUp, onUndo,
 }: {
   parsed: Parsed;
   onClose: () => void;
   onFollowUp: (q: string) => void;
-  onAdd: (s: Suggestion) => void;
+  onUndo: (id: string) => void;
 }) {
-  const [added, setAdded] = useState<Set<number>>(new Set());
+  const [removed, setRemoved] = useState<Set<number>>(new Set());
   return (
     <div className="slide-down glass-panel absolute left-0 right-0 top-[calc(100%+0.75rem)] z-10 p-5 shadow-2xl shadow-black/40">
       <div className="mb-3 flex items-start justify-between">
@@ -356,25 +359,37 @@ function FloatingPanel({
 
       {parsed.suggestions.length > 0 && (
         <div className="mt-4 space-y-2">
-          <div className="text-xs uppercase tracking-wide text-white/40">Suggested tasks</div>
-          {parsed.suggestions.map((s, i) => (
-            <div key={i} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] p-3">
-              <div className="flex items-center gap-2">
-                <span className={`size-2 rounded-full ${s.priority === "high" ? "bg-red-400" : s.priority === "low" ? "bg-emerald-400" : "bg-amber-400"}`} />
-                <div>
-                  <div className="text-sm text-white">{s.title}</div>
-                  {s.due && <div className="text-xs text-white/40">{s.due}</div>}
+          <div className="text-xs uppercase tracking-wide text-white/40">
+            {parsed.addedIds?.length ? "Added to your board" : "Suggested tasks"}
+          </div>
+          {parsed.suggestions.map((s, i) => {
+            const id = parsed.addedIds?.[i];
+            const isRemoved = id ? removed.has(i) : false;
+            return (
+              <div key={i} className={`flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] p-3 ${isRemoved ? "opacity-40" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`size-2 rounded-full ${s.priority === "high" ? "bg-red-400" : s.priority === "low" ? "bg-emerald-400" : "bg-amber-400"}`} />
+                  <div>
+                    <div className={`text-sm text-white ${isRemoved ? "line-through" : ""}`}>{s.title}</div>
+                    {s.due && <div className="text-xs text-white/40">{s.due}</div>}
+                  </div>
                 </div>
+                {id && !isRemoved && (
+                  <button
+                    onClick={() => { onUndo(id); setRemoved((p) => new Set(p).add(i)); }}
+                    className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-white/70 hover:border-white/30 hover:text-white"
+                  >
+                    Undo
+                  </button>
+                )}
+                {!id && (
+                  <span className="flex items-center gap-1 text-xs text-emerald-300">
+                    <Check className="size-3" /> On board
+                  </span>
+                )}
               </div>
-              <button
-                disabled={added.has(i)}
-                onClick={() => { onAdd(s); setAdded((p) => new Set(p).add(i)); }}
-                className="flex items-center gap-1 rounded-md bg-gradient-to-br from-[#4f8ef7] to-[#a78bfa] px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50"
-              >
-                {added.has(i) ? <><Check className="size-3" /> Added</> : <><Plus className="size-3" /> Add</>}
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
