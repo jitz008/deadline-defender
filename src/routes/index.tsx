@@ -557,23 +557,27 @@ function PulseTasks() {
   );
 }
 
-// ============ Chat scroll container (fixes: single scrollbar + no page jump) ============
-function ChatScroll({ messages, ask }: { messages: ChatMsg[]; ask: (q: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
+// ============ Chat scroll container — single scrollbar, always sticks to bottom ============
+function ChatScroll({ messages, ask, aiActive }: { messages: ChatMsg[]; ask: (q: string) => void; aiActive?: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    // Scroll INSIDE the container only — never bubble to the page
-    const el = ref.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length, aiActive]);
   return (
-    <div ref={ref} className="max-h-[55vh] space-y-5 overflow-y-auto overscroll-contain pr-1">
+    <div
+      ref={scrollRef}
+      className="flex max-h-[55vh] min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain pr-1"
+    >
       {messages.map((m, i) => m.role === "user"
         ? <UserBubble key={i} text={m.text} />
         : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
       )}
+      <div ref={bottomRef} />
     </div>
   );
 }
+
 
 // ============ Home Page ============
 function HomePage({
