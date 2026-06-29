@@ -199,11 +199,9 @@ function Sidebar({
               {active && <span className="absolute left-[-12px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#5B8DEF]" />}
               <it.icon className="size-5 shrink-0" strokeWidth={1.75} />
               {expanded && (
-                <>
-                  <span className="flex-1 truncate text-left">{it.label}</span>
-                  {it.badge && <span className="rounded bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{it.badge}</span>}
-                </>
+                <span className="flex-1 truncate text-left">{it.label}</span>
               )}
+
             </button>
           );
         })}
