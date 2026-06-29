@@ -463,14 +463,42 @@ function HomePage({
 
   return (
     <>
-      {/* Greeting */}
-      <section>
-        <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">{timeGreeting(profile.name)}</h1>
-        <p className="mt-2 text-base text-white/45">Here's your day at a glance.</p>
+      {/* Hero: Tasks 2.0 + greeting */}
+      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-[#121725]/60 p-10 text-center">
+        <div className="mesh-bg" />
+        <div className="dot-grid" />
+        <div className="relative z-10">
+          <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
+            <span className="text-white">Tasks </span>
+            <span className="gradient-text">2.0</span>
+          </h1>
+          <p className="mt-2 text-sm text-white/40">Don't forget yours.</p>
+          <div key={profile.name} className="greet-in mt-7">
+            <div className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{timeGreeting(profile.name)}</div>
+            <div className="mt-1 text-sm text-white/45">Here's your day at a glance.</div>
+          </div>
+        </div>
       </section>
 
+      {/* Inline conversation — above the command bar */}
+      {messages.length > 0 && (
+        <section className="slide-down mt-8 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
+            <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
+          </div>
+          <div className="space-y-5">
+            {messages.map((m, i) => m.role === "user"
+              ? <UserBubble key={i} text={m.text} />
+              : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
+            )}
+            <div ref={chatEndRef} />
+          </div>
+        </section>
+      )}
+
       {/* AI command bar */}
-      <section className="mt-8">
+      <section className="mt-6">
         <div className="rounded-2xl border border-white/8 bg-[#121725]/80 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5B8DEF] to-[#8B5CF6] shadow-md shadow-[#5B8DEF]/30 ${aiActive ? "animate-pulse" : ""}`}>
@@ -502,22 +530,6 @@ function HomePage({
         {error && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
       </section>
 
-      {/* Inline conversation — pushes content down */}
-      {messages.length > 0 && (
-        <section className="slide-down mt-6 rounded-2xl border border-white/8 bg-[#121725]/60 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2"><Sparkles className="size-4 text-[#8B5CF6]" /><span className="text-sm font-semibold text-white">Conversation</span></div>
-            <button onClick={clearChat} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/50 hover:bg-white/5 hover:text-white"><Trash2 className="size-3" /> Clear</button>
-          </div>
-          <div className="space-y-5">
-            {messages.map((m, i) => m.role === "user"
-              ? <UserBubble key={i} text={m.text} />
-              : <AiBubble key={i} msg={m} onFollowUp={ask} onOption={ask} />
-            )}
-            <div ref={chatEndRef} />
-          </div>
-        </section>
-      )}
 
       {/* Today's tasks */}
       <section className="mt-10">
