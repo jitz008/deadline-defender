@@ -1,4 +1,4 @@
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { getGeminiModel } from "@/lib/ai-gateway.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
@@ -8,7 +8,8 @@ type ChatRequestBody = {
   taskSnapshot?: string;
 };
 
-const SYSTEM_PROMPT = (snapshot: string) => `You are Saver — a warm, decisive AI productivity companion that helps the user manage tasks, plan their day, and stop missing deadlines.
+const SYSTEM_PROMPT = (snapshot: string) =>
+  `You are Saver — a warm, decisive AI productivity companion that helps the user manage tasks, plan their day, and stop missing deadlines.
 
 Today is ${new Date().toDateString()}.
 
@@ -25,7 +26,6 @@ Rules:
 - After tool actions, give a SHORT confirmation (1-2 lines) plus the next best move. No long explanations.
 - When the user asks to plan their day, propose a time-boxed schedule referencing existing tasks by title. Use markdown bullets.
 - Be concise. Energetic. No filler.
-
 ${snapshot}`;
 
 export const Route = createFileRoute("/api/chat")({
@@ -36,14 +36,9 @@ export const Route = createFileRoute("/api/chat")({
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
-
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
-
-        const gateway = createLovableAiGatewayProvider(key);
-
+        const model = getGeminiModel();
         const result = streamText({
-          model: gateway("google/gemini-3-flash-preview"),
+          model,
           system: SYSTEM_PROMPT(taskSnapshot ?? "The user has no open tasks yet."),
           messages: await convertToModelMessages(messages as UIMessage[]),
           stopWhen: ({ steps }) => steps.length >= 6,
@@ -82,14 +77,12 @@ export const Route = createFileRoute("/api/chat")({
             }),
           },
         });
-
         return result.toUIMessageStreamResponse({
           originalMessages: messages as UIMessage[],
           onError: (error) => {
             console.error("chat stream error", error);
             const msg = error instanceof Error ? error.message : "Unknown error";
             if (msg.includes("429")) return "Rate limit hit — give it a moment and try again.";
-            if (msg.includes("402")) return "AI credits exhausted. Add credits in Lovable settings.";
             return "Something went wrong talking to the AI. Try again.";
           },
         });
