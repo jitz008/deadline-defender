@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package.json bun.lock* bunfig.toml* ./
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy source and build
 COPY . .
